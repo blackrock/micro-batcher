@@ -8,6 +8,7 @@ Micro-batcher is a lightweight, zero-dependency and experimental interval-based 
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
+  - [Roadmap](#roadmap)
   - [Contributing](#contributing)
   - [License](#license)
   - [Contact](#contact)
@@ -107,14 +108,6 @@ const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBa
     payloadWindowSizeLimit: 5
   })
   .build();
-```
-
-## Installation
-
-```shell
-npm install @jaysongcs/micro-batcher
-yarn add @jaysongcs/micro-batcher
-pnpm add @jaysongcs/micro-batcher
 ```
 
 ## Roadmap

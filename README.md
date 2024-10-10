@@ -30,8 +30,11 @@ pnpm run build
 ### Test
 
 ```shell
-# Run test with coverage report
+# Run test
 pnpm run test
+
+# Run test with coverage report
+pnpm run test:coverage
 
 # Watch mode
 pnpm run test:dev

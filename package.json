@@ -1,0 +1,65 @@
+{
+  "name": "micro-batcher",
+  "version": "0.0.3",
+  "description": "Interval-based micro batching library for TypeScript/JavaScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:dev": "vitest watch",
+    "build": "tsup",
+    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
+    "lint": "eslint src/**",
+    "lint:fix": "eslint src/** --fix",
+    "lint:debug": "eslint src/** --debug",
+    "prepare": "husky || true"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint src/** --max-warnings=0 --ext .ts,.tsx",
+      "prettier --write --ignore-unknown"
+    ],
+    "*.{json,html}": [
+      "prettier --write --ignore-unknown"
+    ]
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blackrock/micro-batcher.git"
+  },
+  "keywords": [
+    "micro",
+    "batch",
+    "processing"
+  ],
+  "author": {
+    "name": "Jayson Goh",
+    "url": "https://github.com/JaysonGCS"
+  },
+  "bugs": {
+    "url": "https://github.com/blackrock/micro-batcher/issues"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@swc/core": "^1.5.22",
+    "@types/node": "^20.16.4",
+    "@typescript-eslint/parser": "7.3.0",
+    "@vitest/coverage-v8": "^1.6.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-perfectionist": "2.10.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.3.2",
+    "tsup": "^7.2.0",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.8",
+    "vitest": "^1.6.0"
+  }
+}

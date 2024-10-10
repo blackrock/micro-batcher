@@ -2,7 +2,6 @@
 
 Micro-batcher is a lightweight, zero-dependency and experimental interval-based micro batching library for TypeScript/JavaScript.
 
-
 ## Table of Contents
 
 - [Micro Batcher](#micro-batcher)
@@ -120,22 +119,18 @@ pnpm add @jaysongcs/micro-batcher
 
 ## Roadmap
 
-### Stress Test
-
-- [ ] Experiment on various error scenarios
-
 ### Feature
 
 - [ ] API Cancellation
 - [ ] Concurrent batcher limit support
 - [ ] Rate Limiting and Throttling policies support
 
-
-
 ## Contributing
 
 ### [Contributing](./CONTRIBUTING.md)
+
 ### [Code of conduct](./CODE_OF_CONDUCT.md)
+
 ### [Support](./SUPPORT.md)
 
 ## License

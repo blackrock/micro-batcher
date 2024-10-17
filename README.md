@@ -8,6 +8,7 @@ Micro-batcher is a lightweight, zero-dependency and experimental interval-based 
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
   - [Usage](#usage)
+  - [Development](#development)
   - [Roadmap](#roadmap)
   - [Contributing](#contributing)
   - [License](#license)
@@ -15,29 +16,10 @@ Micro-batcher is a lightweight, zero-dependency and experimental interval-based 
 
 ## Installation
 
-### Local Development
-
 ```shell
-pnpm install
-```
-
-### Build
-
-```shell
-pnpm run build
-```
-
-### Test
-
-```shell
-# Run test
-pnpm run test
-
-# Run test with coverage report
-pnpm run test:coverage
-
-# Watch mode
-pnpm run test:dev
+npm install @blackrock/micro-batcher
+yarn add @blackrock/micro-batcher
+pnpm add @blackrock/micro-batcher
 ```
 
 ## Usage
@@ -108,6 +90,33 @@ const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBa
     payloadWindowSizeLimit: 5
   })
   .build();
+```
+
+## Development
+
+### Local Development
+
+```shell
+pnpm install
+```
+
+### Build
+
+```shell
+pnpm run build
+```
+
+### Test
+
+```shell
+# Run test
+pnpm run test
+
+# Run test with coverage report
+pnpm run test:coverage
+
+# Watch mode
+pnpm run test:dev
 ```
 
 ## Roadmap

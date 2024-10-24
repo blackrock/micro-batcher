@@ -4,7 +4,7 @@ GitHub Issues: https://github.com/blackrock/micro-batcher/issues
 
 # Service Level Agreement
 
-@blackrock/micro-batcher - Open Source Software Project - Service Level Agreement
+@blackrock-oss/micro-batcher - Open Source Software Project - Service Level Agreement
 
 This SLA is subject to change, and the project maintainers reserve the right to update it as needed.
 The project is provided "as is," without warranties or guarantees.

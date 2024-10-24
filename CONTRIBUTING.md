@@ -1,4 +1,4 @@
-# Contributing to [@blackrock/micro-batcher]
+# Contributing to [@blackrock-oss/micro-batcher]
 
 Thank you for your interest in contributing to [@blackrock-oss/micro-batcher]! We welcome all contributions, big or small. To ensure that contributions are properly tracked and attributed, we require that all contributors sign off on their work using the Developer Certificate of Origin (DCO).
 

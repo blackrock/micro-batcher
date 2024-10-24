@@ -1,5 +1,5 @@
 {
-  "name": "@blackrock/micro-batcher",
+  "name": "@blackrock-oss/micro-batcher",
   "version": "0.0.3",
   "description": "Interval-based micro batching library for TypeScript/JavaScript",
   "main": "dist/index.js",

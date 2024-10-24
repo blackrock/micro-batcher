@@ -17,9 +17,9 @@ Micro-batcher is a lightweight, zero-dependency and experimental interval-based 
 ## Installation
 
 ```shell
-npm install @blackrock/micro-batcher
-yarn add @blackrock/micro-batcher
-pnpm add @blackrock/micro-batcher
+npm install @blackrock-oss/micro-batcher
+yarn add @blackrock-oss/micro-batcher
+pnpm add @blackrock-oss/micro-batcher
 ```
 
 ## Usage

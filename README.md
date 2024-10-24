@@ -47,7 +47,7 @@ Once the batch function has been resolved, the results are distributed back to t
 const multiplyByTwo = (input: number): Promise<number> => {...};
 
 // Batch resolver function for "multiplyByTwo", which accepts an array of multiplyByTwo's parameter
-const batchMultiplyByTwo = (inputs: number[][]): Promise<number[]> => {...};
+const batchMultiplyByTwo = (inputs: number[]): Promise<number[]> => {...};
 
 const multiplyByTwoBatcher:(input: number): Promise<number> = MicroBatcher<number, number>(multiplyByTwo)
   .batchResolver(batchMultiplyByTwo)
@@ -82,7 +82,7 @@ const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBa
 
 #### Example 4: specify payload window size limit
 
-By default, Micro Batcher will accumulate all the caller's payload based on bathching interval. However, there is an optional batch option `payloadWindowSizeLimit`, which can specify the upper limit of the accumulation size. Upon reaching the limit, the payloads will be delegated to the batch resolver immediately.
+By default, Micro Batcher will accumulate all the caller's payload based on batching interval. However, there is an optional batch option `payloadWindowSizeLimit`, which can specify the upper limit of the accumulation size. Upon reaching the limit, the payloads will be delegated to the batch resolver immediately.
 
 ```typescript
 const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBatcher<[number,number], number>(multiply)

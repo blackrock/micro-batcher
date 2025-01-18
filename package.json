@@ -13,7 +13,8 @@
     "lint": "eslint src/**",
     "lint:fix": "eslint src/** --fix",
     "lint:debug": "eslint src/** --debug",
-    "prepare": "husky || true"
+    "prepare": "husky || true",
+    "doc": "typedoc"
   },
   "lint-staged": {
     "*.{js,ts}": [
@@ -34,7 +35,8 @@
   "keywords": [
     "micro",
     "batch",
-    "processing"
+    "processing",
+    "decorator"
   ],
   "author": {
     "name": "Jayson Goh",
@@ -46,7 +48,7 @@
   "license": "MIT",
   "devDependencies": {
     "@swc/core": "^1.5.22",
-    "@types/node": "^20.16.4",
+    "@types/node": "^22.10.7",
     "@typescript-eslint/parser": "7.3.0",
     "@vitest/coverage-v8": "^1.6.0",
     "eslint": "^8.57.1",
@@ -57,9 +59,13 @@
     "husky": "^9.0.11",
     "lint-staged": "^15.2.7",
     "prettier": "^3.3.2",
-    "tsup": "^7.2.0",
-    "typescript": "^5.5.4",
-    "vite": "^5.4.8",
+    "tsup": "^8.3.5",
+    "typedoc": "^0.27.6",
+    "typescript": "^5.7.3",
+    "vite": "^5.4.11",
     "vitest": "^1.6.0"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }

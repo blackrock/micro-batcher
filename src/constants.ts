@@ -1,0 +1,1 @@
+export const DEFAULT_BATCH_WINDOW_MS = 50;

@@ -1,3 +1,4 @@
+import { DEFAULT_BATCH_WINDOW_MS } from './constants';
 import { PayloadManager, PromiseLocker } from './payloadManager';
 
 export type AsyncFunction<A, O> = A extends void
@@ -13,8 +14,6 @@ export type PayloadParam<A> = A extends any[] ? A : [A];
  * type AsyncBatchFunction<T extends any[], O> = (arg: T[]) => Promise<O>;
  */
 export type AsyncBatchFunction<T, O> = (arg: PayloadParam<T>[]) => Promise<O[]>;
-
-export const DEFAULT_BATCH_WINDOW_MS = 50;
 
 export interface BatchOptions {
   /**

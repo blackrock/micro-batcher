@@ -100,7 +100,7 @@ export function MicroBatcher<A, O>(func: AsyncFunction<A, O>) {
       }
     }
 
-    intercept = (func: AsyncFunction<A, O>) => {
+    private intercept = (func: AsyncFunction<A, O>) => {
       const runBatcher = (processCount?: number) => {
         MicroBatcher._currentBatchTimeoutId = undefined;
         // TODO: add concurrent batcher limit support

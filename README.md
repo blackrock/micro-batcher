@@ -1,6 +1,6 @@
 # Micro Batcher
 
-Micro-batcher is a lightweight, zero-dependency and experimental interval-based micro batching library for TypeScript/JavaScript.
+Micro Batcher is a lightweight, zero-dependency, and experimental interval-based micro-batching library for TypeScript/JavaScript.
 
 ## Table of Contents
 
@@ -24,72 +24,74 @@ pnpm add @blackrock-oss/micro-batcher
 
 ## Usage
 
-### When to use it?
-
-When there is a burst of multiple callers accessing the same function with different payloads, Micro Batcher can intercept these calls and delegate the payloads to another function for batch processing.
-
 ### Micro Batcher in a nutshell
 
 ![micro batcher demo](./gif/demo.gif)
 
-Micro Batcher is a utility that accepts two functions: the original function and the batch resolver function. It produces a new function with the exact same signature as the original function.
+Micro Batcher is a decorator utility that enhances the input function with additional functionalities such as batching, throttling, and more.
 
-The produced function serves as a seamless replacement for all original single payload function usages. When the produced function experiences bursts of usage, it intercepts, accumulates, and subsequently processes payloads from the callers within the batching interval using the provided batch resolver function.
+By decorating the original function with Micro Batcher, it produces an enhanced function with the same function signature, allowing developers to seamlessly replace the original function with the enhanced version.
 
-Once the batch function has been resolved, the results are distributed back to the individual callers. From the caller's perspective, they only need to be concerned with fetching their own data.
+### API Examples
 
-### API examples
-
-#### Example 1: single parameter function
+#### Example 1: Single Parameter Function
 
 ```typescript
-// Single resolver function
+// Original function
 const multiplyByTwo = (input: number): Promise<number> => {...};
 
-// Batch resolver function for "multiplyByTwo", which accepts an array of multiplyByTwo's parameter
+// Batch resolver function for "multiplyByTwo" function
 const batchMultiplyByTwo = (inputs: number[]): Promise<number[]> => {...};
 
-const multiplyByTwoBatcher:(input: number): Promise<number> = MicroBatcher<number, number>(multiplyByTwo)
-  .batchResolver(batchMultiplyByTwo)
-  .build();
+const multiplyByTwoBatcher: (input: number) => Promise<number> =
+  MicroBatcher<number, number>(multiplyByTwo)
+    .batchResolver(batchMultiplyByTwo)
+    .build();
 ```
 
-#### Example 2: multiple parameters function
+#### Example 2: Multiple Parameters Function
 
 ```typescript
-// Single resolver function
-const multiply = (input1: number, input2:number): Promise<number> => {...}
+// Original function
+const multiply = (input1: number, input2: number): Promise<number> => {...};
 
-// Batch resolver function for "multiplyByTwo", which accepts an array of multiplyByTwo's parameter
-const batchMultiply = (inputs: [number,number][]): Promise<number[]> => {...};
+// Batch resolver function for "multiply" function
+const batchMultiply = (inputs: [number, number][]): Promise<number[]> => {...};
 
-const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBatcher<[number,number], number>(multiply)
-  .batchResolver(batchMultiply)
-  .build();
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
+  MicroBatcher<[number, number], number>(multiply)
+    .batchResolver(batchMultiply)
+    .build();
 ```
 
-#### Example 3: override default batching interval
+#### Example 3: Override Default Batching Interval
 
-The default batching interval is 50ms, which can be overriden with `batchingIntervalInMs` in the batch options.
+The default batching interval is 50ms, which can be overridden using `batchingIntervalInMs` in the batch options.
 
 ```typescript
-const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBatcher<[number,number], number>(multiply)
-  .batchResolver(batchMultiply, {
-    batchingIntervalInMs: 100
-  })
-  .build();
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
+  MicroBatcher<[number, number], number>(multiply)
+    .batchResolver(batchMultiply, {
+      batchingIntervalInMs: 100
+    })
+    .build();
 ```
 
-#### Example 4: specify payload window size limit
+#### Example 4: Specify Payload Window Size Limit
 
-By default, Micro Batcher will accumulate all the caller's payload based on batching interval. However, there is an optional batch option `payloadWindowSizeLimit`, which can specify the upper limit of the accumulation size. Upon reaching the limit, the payloads will be delegated to the batch resolver immediately.
+By default, Micro Batcher accumulates all caller payloads based on the batching interval.
+
+However, an optional batch option `payloadWindowSizeLimit` can specify the upper limit of the accumulation size.
+
+Upon reaching the limit, the payloads are immediately delegated to the batch resolver.
 
 ```typescript
-const multiplyBatcher:(input1: number, input2:number): Promise<number> = MicroBatcher<[number,number], number>(multiply)
-  .batchResolver(batchMultiply, {
-    payloadWindowSizeLimit: 5
-  })
-  .build();
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
+  MicroBatcher<[number, number], number>(multiply)
+    .batchResolver(batchMultiply, {
+      payloadWindowSizeLimit: 5
+    })
+    .build();
 ```
 
 ## Development
@@ -109,10 +111,10 @@ pnpm run build
 ### Test
 
 ```shell
-# Run test
+# Run tests
 pnpm run test
 
-# Run test with coverage report
+# Run tests with coverage report
 pnpm run test:coverage
 
 # Watch mode
@@ -121,23 +123,23 @@ pnpm run test:dev
 
 ## Roadmap
 
-### Feature
+### Features
 
 - [ ] API Cancellation
-- [ ] Concurrent batcher limit support
-- [ ] Rate Limiting and Throttling policies support
+- [ ] Concurrent Batcher Limit Support
+- [ ] Rate Limiting and Throttling Policies Support
 
 ## Contributing
 
 ### [Contributing](./CONTRIBUTING.md)
 
-### [Code of conduct](./CODE_OF_CONDUCT.md)
+### [Code of Conduct](./CODE_OF_CONDUCT.md)
 
 ### [Support](./SUPPORT.md)
 
 ## License
 
-Micro-batcher is [Apache Licensed](./LICENSE)
+Micro Batcher is [Apache Licensed](./LICENSE).
 
 ## Contact
 

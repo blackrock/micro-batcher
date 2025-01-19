@@ -1,5 +1,6 @@
 import { Queue } from './queue';
 
+/** @internal */
 export class PromiseLock<O> {
   private promise: Promise<O>;
   private resolve: ((result: O) => void) | undefined;
@@ -25,12 +26,14 @@ export class PromiseLock<O> {
   };
 }
 
+/** @internal */
 export interface PromiseLocker<P, O> {
   payload: P;
   promiseLock: PromiseLock<O>;
 }
 
 export function PayloadManager<P extends any[], O>() {
+  /** @internal */
   class PayloadManager {
     payloadQueue: Queue<PromiseLocker<P, O>> = new Queue<PromiseLocker<P, O>>();
 

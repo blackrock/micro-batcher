@@ -1,19 +1,21 @@
 import { DEFAULT_BATCH_WINDOW_MS } from './constants';
 import { PayloadManager, PromiseLocker } from './payloadManager';
 
-export type AsyncFunction<A, O> = A extends void
+type AsyncFunction<TParamType, TReturnType> = TParamType extends void
   ? never
-  : A extends any[]
-    ? (...args: A) => Promise<O>
-    : (arg: A) => Promise<O>;
+  : TParamType extends any[]
+    ? (...params: TParamType) => Promise<TReturnType>
+    : (param: TParamType) => Promise<TReturnType>;
 
-export type PayloadParam<A> = A extends any[] ? A : [A];
+type PayloadParam<TParamType> = TParamType extends any[] ? TParamType : [TParamType];
 
 /**
  * Previous Implementation:
  * type AsyncBatchFunction<T extends any[], O> = (arg: T[]) => Promise<O>;
  */
-export type AsyncBatchFunction<T, O> = (arg: PayloadParam<T>[]) => Promise<O[]>;
+type AsyncBatchFunction<TParamType, TReturnType> = (
+  params: PayloadParam<TParamType>[]
+) => Promise<TReturnType[]>;
 
 export interface BatchOptions {
   /**
@@ -32,13 +34,16 @@ export interface BatchOptions {
 
 const DEFAULT_BATCH_OPTIONS: BatchOptions = {};
 
-export function MicroBatcher<A, O>(func: AsyncFunction<A, O>) {
-  class MicroBatcher {
-    private static _singlePayloadFunction: AsyncFunction<A, O>;
-    private static _batchResolver: AsyncBatchFunction<A, O> | undefined;
+export function MicroBatcher<TParamType, TReturnType>(
+  originalFunction: AsyncFunction<TParamType, TReturnType>
+) {
+  /** @hideconstructor */
+  class MicroBatcherBuilder {
+    private static _singlePayloadFunction: AsyncFunction<TParamType, TReturnType>;
+    private static _batchResolver: AsyncBatchFunction<TParamType, TReturnType> | undefined;
     // The timeout id of the current batcher, can be used for short circuit to start the batcher before the interval if needed (e.g. payloadWindowSizeLimit)
     private static _currentBatchTimeoutId: NodeJS.Timeout | undefined;
-    private static _payloadManager = PayloadManager<PayloadParam<A>, O>();
+    private static _payloadManager = PayloadManager<PayloadParam<TParamType>, TReturnType>();
 
     private static _activeBatchCount: number = 0;
 
@@ -46,21 +51,23 @@ export function MicroBatcher<A, O>(func: AsyncFunction<A, O>) {
     private static payloadWindowSizeLimit: number | undefined = undefined;
     private static shouldUseBatchResolverForSinglePayload: boolean = false;
 
-    constructor(singlePayloadFunction: AsyncFunction<A, O>) {
-      MicroBatcher._singlePayloadFunction = singlePayloadFunction;
+    constructor(singlePayloadFunction: AsyncFunction<TParamType, TReturnType>) {
+      MicroBatcherBuilder._singlePayloadFunction = singlePayloadFunction;
     }
 
-    private static processPayload(payloadLockerList: PromiseLocker<PayloadParam<A>, O>[]) {
-      const payloadList: PayloadParam<A>[] = payloadLockerList.map((pl) => {
+    private static processPayload(
+      payloadLockerList: PromiseLocker<PayloadParam<TParamType>, TReturnType>[]
+    ) {
+      const payloadList: PayloadParam<TParamType>[] = payloadLockerList.map((pl) => {
         return pl.payload;
       });
 
       const shouldUseBatchResolver =
         payloadList.length > 1 ||
-        (MicroBatcher.shouldUseBatchResolverForSinglePayload && payloadList.length === 1);
-      if (MicroBatcher._batchResolver && shouldUseBatchResolver) {
-        MicroBatcher._activeBatchCount++;
-        MicroBatcher._batchResolver(payloadList)
+        (MicroBatcherBuilder.shouldUseBatchResolverForSinglePayload && payloadList.length === 1);
+      if (MicroBatcherBuilder._batchResolver && shouldUseBatchResolver) {
+        MicroBatcherBuilder._activeBatchCount++;
+        MicroBatcherBuilder._batchResolver(payloadList)
           .then((results) => {
             if (results.length !== payloadList.length) {
               throw Error(
@@ -75,18 +82,18 @@ export function MicroBatcher<A, O>(func: AsyncFunction<A, O>) {
             });
           })
           .finally(() => {
-            MicroBatcher._activeBatchCount--;
+            MicroBatcherBuilder._activeBatchCount--;
           });
       } else {
-        payloadList.forEach((payload: PayloadParam<A>, index) => {
+        payloadList.forEach((payload: PayloadParam<TParamType>, index) => {
           const {
             promiseLock: { release, releaseWithError }
           } = payloadLockerList[index];
-          MicroBatcher._activeBatchCount++;
+          MicroBatcherBuilder._activeBatchCount++;
 
           // TODO: Try to make type better without ts-ignore
           // @ts-ignore
-          MicroBatcher._singlePayloadFunction(...payload)
+          MicroBatcherBuilder._singlePayloadFunction(...payload)
             .then((result) => {
               release(result);
             })
@@ -94,42 +101,42 @@ export function MicroBatcher<A, O>(func: AsyncFunction<A, O>) {
               releaseWithError(e);
             })
             .finally(() => {
-              MicroBatcher._activeBatchCount--;
+              MicroBatcherBuilder._activeBatchCount--;
             });
         });
       }
     }
 
-    private intercept = (func: AsyncFunction<A, O>) => {
+    private intercept = (func: AsyncFunction<TParamType, TReturnType>) => {
       const runBatcher = (processCount?: number) => {
-        MicroBatcher._currentBatchTimeoutId = undefined;
+        MicroBatcherBuilder._currentBatchTimeoutId = undefined;
         // TODO: add concurrent batcher limit support
-        const payloadForBatchProcessing: PromiseLocker<PayloadParam<A>, O>[] =
-          MicroBatcher._payloadManager.consumePayloadList(processCount);
-        MicroBatcher.processPayload(payloadForBatchProcessing);
+        const payloadForBatchProcessing: PromiseLocker<PayloadParam<TParamType>, TReturnType>[] =
+          MicroBatcherBuilder._payloadManager.consumePayloadList(processCount);
+        MicroBatcherBuilder.processPayload(payloadForBatchProcessing);
       };
 
       const startBatcherEarlierIfEligible = () => {
-        const currentPayloadSize: number = MicroBatcher._payloadManager.getCurrentSize();
+        const currentPayloadSize: number = MicroBatcherBuilder._payloadManager.getCurrentSize();
         if (
-          MicroBatcher.payloadWindowSizeLimit !== undefined &&
-          MicroBatcher.payloadWindowSizeLimit <= currentPayloadSize
+          MicroBatcherBuilder.payloadWindowSizeLimit !== undefined &&
+          MicroBatcherBuilder.payloadWindowSizeLimit <= currentPayloadSize
         ) {
-          clearTimeout(MicroBatcher._currentBatchTimeoutId);
-          runBatcher(MicroBatcher.payloadWindowSizeLimit);
+          clearTimeout(MicroBatcherBuilder._currentBatchTimeoutId);
+          runBatcher(MicroBatcherBuilder.payloadWindowSizeLimit);
         }
       };
 
       return new Proxy(func, {
-        apply: async (_target, _, argumentsList: PayloadParam<A>) => {
-          const result: () => Promise<O> =
-            MicroBatcher._payloadManager.submitPayload(argumentsList);
+        apply: async (_target, _, argumentsList: PayloadParam<TParamType>) => {
+          const result: () => Promise<TReturnType> =
+            MicroBatcherBuilder._payloadManager.submitPayload(argumentsList);
 
-          if (MicroBatcher._currentBatchTimeoutId === undefined) {
+          if (MicroBatcherBuilder._currentBatchTimeoutId === undefined) {
             const timeoutId = setTimeout(() => {
               runBatcher();
-            }, MicroBatcher.batchingIntervalInMs);
-            MicroBatcher._currentBatchTimeoutId = timeoutId;
+            }, MicroBatcherBuilder.batchingIntervalInMs);
+            MicroBatcherBuilder._currentBatchTimeoutId = timeoutId;
           }
 
           startBatcherEarlierIfEligible();
@@ -150,26 +157,27 @@ export function MicroBatcher<A, O>(func: AsyncFunction<A, O>) {
      * - Each element's position in the result array will be mapped back to the corresponding payload element's position.
      */
     batchResolver = (
-      batch: AsyncBatchFunction<A, O>,
+      batch: AsyncBatchFunction<TParamType, TReturnType>,
       batchOptions: BatchOptions = DEFAULT_BATCH_OPTIONS
     ) => {
-      MicroBatcher._batchResolver = batch;
+      MicroBatcherBuilder._batchResolver = batch;
       const {
         payloadWindowSizeLimit,
         batchingIntervalInMs = DEFAULT_BATCH_WINDOW_MS,
         shouldUseBatchResolverForSinglePayload = false
       } = batchOptions;
-      MicroBatcher.payloadWindowSizeLimit = payloadWindowSizeLimit;
-      MicroBatcher.batchingIntervalInMs = batchingIntervalInMs;
-      MicroBatcher.shouldUseBatchResolverForSinglePayload = shouldUseBatchResolverForSinglePayload;
+      MicroBatcherBuilder.payloadWindowSizeLimit = payloadWindowSizeLimit;
+      MicroBatcherBuilder.batchingIntervalInMs = batchingIntervalInMs;
+      MicroBatcherBuilder.shouldUseBatchResolverForSinglePayload =
+        shouldUseBatchResolverForSinglePayload;
 
       return this;
     };
 
-    build(): AsyncFunction<A, O> {
-      return this.intercept(MicroBatcher._singlePayloadFunction);
+    build(): AsyncFunction<TParamType, TReturnType> {
+      return this.intercept(MicroBatcherBuilder._singlePayloadFunction);
     }
   }
 
-  return new MicroBatcher(func);
+  return new MicroBatcherBuilder(originalFunction);
 }

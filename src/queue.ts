@@ -1,3 +1,4 @@
+/** @internal */
 export class Queue<P> {
   elements: { [key: number]: P };
   head: number = 0;

@@ -2,5 +2,9 @@
   "compilerOptions": {
     "skipLibCheck": true,
     "strictNullChecks": false
-  }
+  },
+  "plugin": ["typedoc-plugin-missing-exports"],
+  "includeVersion": true,
+  "excludeInternal": true,
+  "placeInternalsInOwningModule": true
 }

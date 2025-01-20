@@ -26,11 +26,13 @@ pnpm add @blackrock-oss/micro-batcher
 
 ### Micro Batcher in a nutshell
 
-![micro batcher demo](./gif/demo.gif)
-
 Micro Batcher is a decorator utility that enhances the input function with additional functionalities such as batching, throttling, and more.
 
 By decorating the original function with Micro Batcher, it produces an enhanced function with the same function signature, allowing developers to seamlessly replace the original function with the enhanced version.
+
+If a batching function is provided to Micro Batcher, calls to the decorated function within a short interval are intercepted, their payloads are accumulated, then forwarded to the batching or original function for processing, and the results are distributed back to the respective callers.
+
+![micro batcher demo](./gif/micro-batcher-demo.gif)
 
 ### API Examples
 

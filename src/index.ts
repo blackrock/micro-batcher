@@ -107,7 +107,7 @@ export function MicroBatcher<TParamType, TReturnType>(
       }
     }
 
-    private intercept = (func: AsyncFunction<TParamType, TReturnType>) => {
+    __intercept = (func: AsyncFunction<TParamType, TReturnType>) => {
       const runBatcher = (processCount?: number) => {
         MicroBatcherBuilder._currentBatchTimeoutId = undefined;
         // TODO: add concurrent batcher limit support
@@ -175,7 +175,7 @@ export function MicroBatcher<TParamType, TReturnType>(
     };
 
     build(): AsyncFunction<TParamType, TReturnType> {
-      return this.intercept(MicroBatcherBuilder._singlePayloadFunction);
+      return this.__intercept(MicroBatcherBuilder._singlePayloadFunction);
     }
   }
 

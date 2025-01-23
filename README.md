@@ -7,6 +7,7 @@ Micro Batcher is a lightweight, zero-dependency, and experimental interval-based
 - [Micro Batcher](#micro-batcher)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
+  - [Examples](#examples)
   - [Usage](#usage)
   - [Development](#development)
   - [Roadmap](#roadmap)
@@ -22,6 +23,12 @@ yarn add @blackrock-oss/micro-batcher
 pnpm add @blackrock-oss/micro-batcher
 ```
 
+## Examples
+
+The [Examples Directory](./examples) is a great resource for learning how to setup Micro Batcher.
+
+[Web Application](./examples/webapp) is a playground application which provides example on how to configure and integrate Micro Batcher with [Recoil's Data Fetching Pattern using Selector Family](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters).
+
 ## Usage
 
 ### Micro Batcher in a nutshell
@@ -36,7 +43,44 @@ If a batching function is provided to Micro Batcher, calls to the decorated func
 
 ### API Examples
 
-#### Example 1: Single Parameter Function
+Below code snippets are taken from the [Example Web Application](./examples/webapp). Micro Batcher is used to generate a decorated function that is being used by data fetching workflow.
+
+```typescript
+export const fetchSingleSecurity = async (cusip: string): Promise<Security> => {
+  // Data Fetching Implementation
+};
+
+const batchFetchSecurities = async (cusips: string[]): Promise<Security[]> => {
+  // Data Fetching Implementation
+};
+
+export const decoratedFetchSecurity = MicroBatcher(fetchSingleSecurity)
+  .batchResolver(batchFetchSecurities, {
+    payloadWindowSizeLimit: 4,
+    batchingIntervalInMs: 50
+  })
+  .build();
+```
+
+In this example, the decorated function is being used in conjunction with [Recoil's Data Fetching Pattern](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters) which combines the benefit of selector caching and automatic burst APIs batching.
+
+```typescript
+export const cusipToSecuritySelectorFamily = selectorFamily<Security, string>({
+  key: 'cusipToSecuritySelectorFamily',
+  get:
+    (cusip: string) =>
+    ({ get }) => {
+      const enableMicroBatcher = get(enableMicroBatcherAtom);
+      if (enableMicroBatcher) {
+        return decoratedFetchSecurity(cusip);
+      }
+      return fetchSingleSecurity(cusip);
+    }
+});
+```
+
+#### Other Examples
+##### Example 1: Single Parameter Function
 
 ```typescript
 // Original function
@@ -51,7 +95,7 @@ const multiplyByTwoBatcher: (input: number) => Promise<number> =
     .build();
 ```
 
-#### Example 2: Multiple Parameters Function
+##### Example 2: Multiple Parameters Function
 
 ```typescript
 // Original function
@@ -66,7 +110,7 @@ const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
     .build();
 ```
 
-#### Example 3: Override Default Batching Interval
+##### Example 3: Override Default Batching Interval
 
 The default batching interval is 50ms, which can be overridden using `batchingIntervalInMs` in the batch options.
 
@@ -79,7 +123,7 @@ const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
     .build();
 ```
 
-#### Example 4: Specify Payload Window Size Limit
+##### Example 4: Specify Payload Window Size Limit
 
 By default, Micro Batcher accumulates all caller payloads based on the batching interval.
 

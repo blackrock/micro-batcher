@@ -7,6 +7,7 @@ Micro Batcher is a lightweight, zero-dependency, and experimental interval-based
 - [Micro Batcher](#micro-batcher)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
+  - [Examples](#examples)
   - [Usage](#usage)
   - [Development](#development)
   - [Roadmap](#roadmap)
@@ -21,6 +22,10 @@ npm install @blackrock-oss/micro-batcher
 yarn add @blackrock-oss/micro-batcher
 pnpm add @blackrock-oss/micro-batcher
 ```
+
+## Examples
+
+The [Examples Directory](./examples) is a great resource for learning how to setup Micro Batcher. The [Web Application](./examples/webapp) is a playground application which provides example on how to configure and integrate Micro Batcher with [Recoil's Data Fetching Pattern using Selector Family](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters).
 
 ## Usage
 

@@ -17,6 +17,12 @@
         "type": "natural",
         "order": "asc"
       }
+    ],
+    "no-console": [
+      "error",
+      {
+        "allow": ["warn", "error"]
+      }
     ]
   },
   "parserOptions": { "sourceType": "module", "ecmaVersion": 6 },

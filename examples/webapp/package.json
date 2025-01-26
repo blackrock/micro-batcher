@@ -7,13 +7,14 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "preinstall": "npm uninstall micro-batcher && npm install micro-batcher@micro-batcher.tgz"
   },
   "dependencies": {
+    "micro-batcher": "file:micro-batcher.tgz",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "recoil": "^0.7.7",
-    "micro-batcher": "micro-batcher.tgz"
+    "recoil": "^0.7.7"
   },
   "devDependencies": {
     "@types/react": "^18.2.37",

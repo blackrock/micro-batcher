@@ -1,10 +1,14 @@
 import { defineConfig } from 'tsup';
 
+const env = process.env.NODE_ENV;
+
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['cjs', 'esm'], // Build for commonJS and ESmodules
+  format: ['cjs', 'esm'],
   dts: true, // Generate declaration file (.d.ts)
-  splitting: false,
+  splitting: true,
   sourcemap: true,
-  clean: true
+  clean: true,
+  skipNodeModulesBundle: true,
+  minify: env === 'production'
 });

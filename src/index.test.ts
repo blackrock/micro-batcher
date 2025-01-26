@@ -6,7 +6,7 @@ const DEFAULT_BATCH_THRESHOLD = 200;
 const DEFAULT_API_RESPONSE_TIME = 300;
 
 describe('multiple parameter test', () => {
-  const mockMultiplyDoubleValuesFunction = vi
+  const mockMultiplyDoubleValuesFunction: (n1: number, n2: number) => Promise<number> = vi
     .fn()
     .mockImplementation(async (n1: number, n2: number): Promise<number> => {
       return await new Promise((resolve) => {
@@ -16,7 +16,9 @@ describe('multiple parameter test', () => {
       });
     });
 
-  const mockMultiplyDoubleValuesBatchResolver = vi
+  const mockMultiplyDoubleValuesBatchResolver: (
+    payloadList: [number, number][]
+  ) => Promise<number[]> = vi
     .fn()
     .mockImplementation(async (payloadList: [number, number][]): Promise<number[]> => {
       const result: Promise<number>[] = [];
@@ -37,9 +39,7 @@ describe('multiple parameter test', () => {
   });
   describe('single function setup without batch function test', () => {
     it('multiply 2 parameters', async () => {
-      const multiply = MicroBatcher<[number, number], number>(
-        mockMultiplyDoubleValuesFunction
-      ).build();
+      const multiply = MicroBatcher(mockMultiplyDoubleValuesFunction).build();
 
       const result1 = multiply(1, 2);
       const result2 = multiply(2, 2);
@@ -52,7 +52,7 @@ describe('multiple parameter test', () => {
 
   describe('single function setup with batch function test', () => {
     it('multiply 2 parameters', async () => {
-      const multiply = MicroBatcher<[number, number], number>(mockMultiplyDoubleValuesFunction)
+      const multiply = MicroBatcher(mockMultiplyDoubleValuesFunction)
         .batchResolver(mockMultiplyDoubleValuesBatchResolver)
         .build();
 
@@ -73,7 +73,7 @@ describe('interference test', () => {
   });
 
   describe('with batcher', () => {
-    const mockMultiplySingleValueFunction = vi
+    const mockMultiplySingleValueFunction: (payload: number) => Promise<number> = vi
       .fn()
       .mockImplementation(async (payload: number): Promise<number> => {
         return await new Promise((resolve) => {
@@ -99,7 +99,7 @@ describe('interference test', () => {
         return await Promise.all(result);
       });
 
-    const mockSingleStringValueFunction = vi
+    const mockSingleStringValueFunction: (payload: string) => Promise<string> = vi
       .fn()
       .mockImplementation(async (payload: string): Promise<string> => {
         return await new Promise((resolve) => {
@@ -109,7 +109,7 @@ describe('interference test', () => {
         });
       });
 
-    const mockSingleStringValueBatchResolver = vi
+    const mockSingleStringValueBatchResolver: (payloadList: string[]) => Promise<string[]> = vi
       .fn()
       .mockImplementation(async (payloadList: string[]): Promise<string[]> => {
         const result: Promise<string>[] = [];
@@ -221,7 +221,7 @@ describe('with batch resolver', () => {
     vi.clearAllMocks();
   });
 
-  const mockSingleValueFunction = vi
+  const mockSingleValueFunction: (payload: number) => Promise<number> = vi
     .fn()
     .mockImplementation(async (payload: number): Promise<number> => {
       return await new Promise((resolve) => {
@@ -231,7 +231,7 @@ describe('with batch resolver', () => {
       });
     });
 
-  const mockSingleValueBatchResolver = vi
+  const mockSingleValueBatchResolver: (payloadList: number[]) => Promise<number[]> = vi
     .fn()
     .mockImplementation(async (payloadList: number[]): Promise<number[]> => {
       const result: Promise<number>[] = [];

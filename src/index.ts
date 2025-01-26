@@ -1,21 +1,39 @@
 import { DEFAULT_BATCH_WINDOW_MS } from './constants';
 import { PayloadManager, PromiseLocker } from './payloadManager';
 
+/**
+ * @example
+ * type t1 = AsyncFunction<string, string>; // type t1 = (param: string) => Promise<string>
+ * type t2 = AsyncFunction<string[], string>; // type t2 = (param: string[]) => Promise<string>
+ * type t3 = AsyncFunction<[string, number], string>; // type t3 = (params_0: string, params_1: number) => Promise<string>
+ * type t4 = AsyncFunction<[string[], number[], boolean], string>; // type t4 = (params_0: string[], params_1: number[], params_2: boolean) => Promise<string>
+ */
 type AsyncFunction<TParamType, TReturnType> = TParamType extends void
   ? never
-  : TParamType extends any[]
+  : TParamType extends [infer _First, ...infer _Rest]
     ? (...params: TParamType) => Promise<TReturnType>
     : (param: TParamType) => Promise<TReturnType>;
 
-type PayloadParam<TParamType> = TParamType extends any[] ? TParamType : [TParamType];
+/**
+ * @internal
+ */
+type SingleFunctionPayload<TParamType, TReturnType> =
+  Parameters<AsyncFunction<TParamType, TReturnType>> extends [infer _First, ...infer Rest]
+    ? Rest['length'] extends 0
+      ? Parameters<AsyncFunction<TParamType, TReturnType>>[0]
+      : Parameters<AsyncFunction<TParamType, TReturnType>>
+    : never;
 
 /**
- * Previous Implementation:
- * type AsyncBatchFunction<T extends any[], O> = (arg: T[]) => Promise<O>;
+ * @example
+ * type b1 = AsyncBatchFunction<string[], string[]>;
+ * type b2 = AsyncBatchFunction<string[][], string[]>;
+ * type b3 = AsyncBatchFunction<[string, number][], string[]>;
+ * type b4 = AsyncBatchFunction<[string[], number[], boolean][], string[]>;
  */
-type AsyncBatchFunction<TParamType, TReturnType> = (
-  params: PayloadParam<TParamType>[]
-) => Promise<TReturnType[]>;
+type AsyncBatchFunction<TBatchParamType extends any[], TBatchReturnType extends any[]> = (
+  batchParams: TBatchParamType
+) => Promise<TBatchReturnType>;
 
 export interface BatchOptions {
   /**
@@ -40,10 +58,15 @@ export function MicroBatcher<TParamType, TReturnType>(
   /** @hideconstructor */
   class MicroBatcherBuilder {
     private static _singlePayloadFunction: AsyncFunction<TParamType, TReturnType>;
-    private static _batchResolver: AsyncBatchFunction<TParamType, TReturnType> | undefined;
+    private static _batchResolver:
+      | AsyncBatchFunction<SingleFunctionPayload<TParamType, TReturnType>[], TReturnType[]>
+      | undefined;
     // The timeout id of the current batcher, can be used for short circuit to start the batcher before the interval if needed (e.g. payloadWindowSizeLimit)
     private static _currentBatchTimeoutId: NodeJS.Timeout | undefined;
-    private static _payloadManager = PayloadManager<PayloadParam<TParamType>, TReturnType>();
+    private static _payloadManager = PayloadManager<
+      SingleFunctionPayload<TParamType, TReturnType>,
+      TReturnType
+    >();
 
     private static _activeBatchCount: number = 0;
 
@@ -56,9 +79,12 @@ export function MicroBatcher<TParamType, TReturnType>(
     }
 
     private static processPayload(
-      payloadLockerList: PromiseLocker<PayloadParam<TParamType>, TReturnType>[]
+      payloadLockerList: PromiseLocker<
+        SingleFunctionPayload<TParamType, TReturnType>,
+        TReturnType
+      >[]
     ) {
-      const payloadList: PayloadParam<TParamType>[] = payloadLockerList.map((pl) => {
+      const payloadList = payloadLockerList.map((pl) => {
         return pl.payload;
       });
 
@@ -85,7 +111,7 @@ export function MicroBatcher<TParamType, TReturnType>(
             MicroBatcherBuilder._activeBatchCount--;
           });
       } else {
-        payloadList.forEach((payload: PayloadParam<TParamType>, index) => {
+        payloadList.forEach((payload: SingleFunctionPayload<TParamType, TReturnType>, index) => {
           const {
             promiseLock: { release, releaseWithError }
           } = payloadLockerList[index];
@@ -107,11 +133,14 @@ export function MicroBatcher<TParamType, TReturnType>(
       }
     }
 
-    private intercept = (func: AsyncFunction<TParamType, TReturnType>) => {
+    /**
+     * @private
+     */
+    __intercept = (func: AsyncFunction<TParamType, TReturnType>) => {
       const runBatcher = (processCount?: number) => {
         MicroBatcherBuilder._currentBatchTimeoutId = undefined;
         // TODO: add concurrent batcher limit support
-        const payloadForBatchProcessing: PromiseLocker<PayloadParam<TParamType>, TReturnType>[] =
+        const payloadForBatchProcessing =
           MicroBatcherBuilder._payloadManager.consumePayloadList(processCount);
         MicroBatcherBuilder.processPayload(payloadForBatchProcessing);
       };
@@ -128,7 +157,11 @@ export function MicroBatcher<TParamType, TReturnType>(
       };
 
       return new Proxy(func, {
-        apply: async (_target, _, argumentsList: PayloadParam<TParamType>) => {
+        apply: async (
+          _target,
+          _,
+          argumentsList: SingleFunctionPayload<TParamType, TReturnType>
+        ) => {
           const result: () => Promise<TReturnType> =
             MicroBatcherBuilder._payloadManager.submitPayload(argumentsList);
 
@@ -150,17 +183,20 @@ export function MicroBatcher<TParamType, TReturnType>(
 
     /**
      *
-     * @param batch  - Optional. The batch resolver/function to process the accumulated payload array.
+     * @param batchFunction  - Optional. The batch resolver/function to process the accumulated payload array.
      * @param batchOptions - Optional. Options to configure batching behaviour.
      * @returns
      * - The returned array length and the payload array length are required to be the same.
      * - Each element's position in the result array will be mapped back to the corresponding payload element's position.
      */
     batchResolver = (
-      batch: AsyncBatchFunction<TParamType, TReturnType>,
+      batchFunction: AsyncBatchFunction<
+        SingleFunctionPayload<TParamType, TReturnType>[],
+        TReturnType[]
+      >,
       batchOptions: BatchOptions = DEFAULT_BATCH_OPTIONS
     ) => {
-      MicroBatcherBuilder._batchResolver = batch;
+      MicroBatcherBuilder._batchResolver = batchFunction;
       const {
         payloadWindowSizeLimit,
         batchingIntervalInMs = DEFAULT_BATCH_WINDOW_MS,
@@ -175,7 +211,7 @@ export function MicroBatcher<TParamType, TReturnType>(
     };
 
     build(): AsyncFunction<TParamType, TReturnType> {
-      return this.intercept(MicroBatcherBuilder._singlePayloadFunction);
+      return this.__intercept(MicroBatcherBuilder._singlePayloadFunction);
     }
   }
 

@@ -17,7 +17,8 @@
     "lint:fix": "eslint src/** --fix",
     "lint:debug": "eslint src/** --debug",
     "prepare": "husky || true",
-    "doc": "typedoc"
+    "doc": "typedoc",
+    "semantic-release": "semantic-release"
   },
   "lint-staged": {
     "*.{js,ts}": [
@@ -51,7 +52,7 @@
   "license": "MIT",
   "devDependencies": {
     "@swc/core": "^1.5.22",
-    "@types/node": "^22.10.7",
+    "@types/node": "^22.14.0",
     "@typescript-eslint/parser": "7.3.0",
     "@vitest/coverage-v8": "^1.6.0",
     "eslint": "^8.57.1",
@@ -61,14 +62,15 @@
     "eslint-plugin-prettier": "^5.2.1",
     "husky": "^9.0.11",
     "lint-staged": "^15.2.7",
-    "prettier": "^3.3.2",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "semantic-release": "^24.2.3",
     "tsup": "^8.3.5",
     "typedoc": "^0.27.6",
     "typedoc-plugin-missing-exports": "^3.1.0",
-    "typescript": "^5.7.3",
+    "typescript": "^5.8.3",
     "vite": "^5.4.11",
-    "vitest": "^1.6.0",
-    "rimraf": "^6.0.1"
+    "vitest": "^1.6.0"
   },
   "engines": {
     "node": ">=22"

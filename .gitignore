@@ -162,3 +162,5 @@ dist
 .yarn/install-state.gz
 .pnp.*
 
+# Documentation
+/docs

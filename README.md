@@ -1,38 +1,192 @@
-# Open Source Template
+# Micro Batcher
 
-Description of the project.
+Micro Batcher is a lightweight, zero-dependency, and experimental interval-based micro-batching library for TypeScript/JavaScript.
 
 ## Table of Contents
 
-- [Open Source Template](#open-source-template)
+- [Micro Batcher](#micro-batcher)
   - [Table of Contents](#table-of-contents)
   - [Installation](#installation)
+  - [Examples](#examples)
   - [Usage](#usage)
+  - [Development](#development)
+  - [Roadmap](#roadmap)
   - [Contributing](#contributing)
   - [License](#license)
-  - [Credits](#credits)
   - [Contact](#contact)
 
 ## Installation
 
-Instructions for installing and configuring the project.
+```shell
+npm install @blackrock-oss/micro-batcher
+yarn add @blackrock-oss/micro-batcher
+pnpm add @blackrock-oss/micro-batcher
+```
+
+## Examples
+
+The [Examples Directory](./examples) is a great resource for learning how to setup Micro Batcher.
+
+[Web Application](./examples/webapp) is a playground application which provides example on how to configure and integrate Micro Batcher with [Recoil's Data Fetching Pattern using Selector Family](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters).
 
 ## Usage
 
-Examples and instructions for using the project.
+### Micro Batcher in a nutshell
+
+Micro Batcher is a decorator utility that enhances the input function with additional functionalities such as batching, throttling, and more.
+
+By decorating the original function with Micro Batcher, it produces an enhanced function with the same function signature, allowing developers to seamlessly replace the original function with the enhanced version.
+
+If a batching function is provided to Micro Batcher, calls to the decorated function within a short interval are intercepted, their payloads are accumulated, then forwarded to the batching or original function for processing, and the results are distributed back to the respective callers.
+
+![micro batcher demo](./gif/micro-batcher-demo.gif)
+
+### API Examples
+
+Below code snippets are taken from the [Example Web Application](./examples/webapp). Micro Batcher is used to generate a decorated function that is being used by data fetching workflow.
+
+```typescript
+export const fetchSingleSecurity = async (cusip: string): Promise<Security> => {
+  // Data Fetching Implementation
+};
+
+const batchFetchSecurities = async (cusips: string[]): Promise<Security[]> => {
+  // Data Fetching Implementation
+};
+
+export const decoratedFetchSecurity = MicroBatcher(fetchSingleSecurity)
+  .batchResolver(batchFetchSecurities, {
+    payloadWindowSizeLimit: 4,
+    batchingIntervalInMs: 50
+  })
+  .build();
+```
+
+In this example, the decorated function is being used in conjunction with [Recoil's Data Fetching Pattern](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters) which combines the benefit of selector caching and automatic burst APIs batching.
+
+```typescript
+export const cusipToSecuritySelectorFamily = selectorFamily<Security, string>({
+  key: 'cusipToSecuritySelectorFamily',
+  get:
+    (cusip: string) =>
+    ({ get }) => {
+      const enableMicroBatcher = get(enableMicroBatcherAtom);
+      if (enableMicroBatcher) {
+        return decoratedFetchSecurity(cusip);
+      }
+      return fetchSingleSecurity(cusip);
+    }
+});
+```
+
+#### Other Examples
+##### Example 1: Single Parameter Function
+
+```typescript
+// Original function
+const multiplyByTwo = (input: number): Promise<number> => {...};
+
+// Batch resolver function for "multiplyByTwo" function
+const batchMultiplyByTwo = (inputs: number[]): Promise<number[]> => {...};
+
+const multiplyByTwoBatcher: (input: number) => Promise<number> =
+  MicroBatcher<number, number>(multiplyByTwo)
+    .batchResolver(batchMultiplyByTwo)
+    .build();
+```
+
+##### Example 2: Multiple Parameters Function
+
+```typescript
+// Original function
+const multiply = (input1: number, input2: number): Promise<number> => {...};
+
+// Batch resolver function for "multiply" function
+const batchMultiply = (inputs: [number, number][]): Promise<number[]> => {...};
+
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
+  MicroBatcher<[number, number], number>(multiply)
+    .batchResolver(batchMultiply)
+    .build();
+```
+
+##### Example 3: Override Default Batching Interval
+
+The default batching interval is 50ms, which can be overridden using `batchingIntervalInMs` in the batch options.
+
+```typescript
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
+  MicroBatcher<[number, number], number>(multiply)
+    .batchResolver(batchMultiply, {
+      batchingIntervalInMs: 100
+    })
+    .build();
+```
+
+##### Example 4: Specify Payload Window Size Limit
+
+By default, Micro Batcher accumulates all caller payloads based on the batching interval.
+
+However, an optional batch option `payloadWindowSizeLimit` can specify the upper limit of the accumulation size.
+
+Upon reaching the limit, the payloads are immediately delegated to the batch resolver.
+
+```typescript
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
+  MicroBatcher<[number, number], number>(multiply)
+    .batchResolver(batchMultiply, {
+      payloadWindowSizeLimit: 5
+    })
+    .build();
+```
+
+## Development
+
+### Local Development
+
+```shell
+pnpm install
+```
+
+### Build
+
+```shell
+pnpm run build
+```
+
+### Test
+
+```shell
+# Run tests
+pnpm run test
+
+# Run tests with coverage report
+pnpm run test:coverage
+
+# Watch mode
+pnpm run test:dev
+```
+
+## Roadmap
+
+### Features
+
+- [ ] API Cancellation
+- [ ] Concurrent Batcher Limit Support
+- [ ] Rate Limiting and Throttling Policies Support
 
 ## Contributing
 
-Guidelines for contributing to the project. link to CONTRIBUTING.md and CODE_OF_CONDUCT.md
+### [Contributing](./CONTRIBUTING.md)
+
+### [Code of Conduct](./CODE_OF_CONDUCT.md)
+
+### [Support](./SUPPORT.md)
 
 ## License
 
-The license for the project. Lint to the LICENSE file in the root
-
-## Credits
-
-Acknowledgements for any contributors, libraries, or resources.
+Micro Batcher is [Apache Licensed](./LICENSE).
 
 ## Contact
 
-Contact information for questions or feedback.
+GitHub Issues: https://github.com/blackrock/micro-batcher/issues

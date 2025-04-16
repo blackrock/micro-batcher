@@ -1,0 +1,78 @@
+{
+  "name": "@blackrock-oss/micro-batcher",
+  "version": "0.0.1",
+  "description": "Interval-based micro batching library for TypeScript/JavaScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "clean:dist": "rimraf dist",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:dev": "vitest watch",
+    "move:webapp": "mv $(find . -depth 1  -type f -name blackrock-oss-micro-batcher-*.tgz) ./examples/webapp/micro-batcher.tgz",
+    "build": "tsup",
+    "build:demo": "pnpm run clean:dist && pnpm run build && pnpm pack && pnpm run move:webapp",
+    "format": "prettier --write './**/*.{js,jsx,ts,tsx,css,md,json}' --config ./.prettierrc",
+    "lint": "eslint src/**",
+    "lint:fix": "eslint src/** --fix",
+    "lint:debug": "eslint src/** --debug",
+    "prepare": "husky || true",
+    "doc": "typedoc",
+    "semantic-release": "semantic-release"
+  },
+  "lint-staged": {
+    "*.{js,ts}": [
+      "eslint src/** --max-warnings=0 --ext .ts,.tsx",
+      "prettier --write --ignore-unknown"
+    ],
+    "*.{json,html}": [
+      "prettier --write --ignore-unknown"
+    ]
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blackrock/micro-batcher.git"
+  },
+  "keywords": [
+    "micro",
+    "batch",
+    "processing",
+    "decorator"
+  ],
+  "author": {
+    "name": "Jayson Goh",
+    "url": "https://github.com/JaysonGCS"
+  },
+  "bugs": {
+    "url": "https://github.com/blackrock/micro-batcher/issues"
+  },
+  "license": "MIT",
+  "devDependencies": {
+    "@swc/core": "^1.11.21",
+    "@types/node": "^22.14.0",
+    "@typescript-eslint/parser": "7.18.0",
+    "@vitest/coverage-v8": "^3.1.1",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-import": "^2.30.0",
+    "eslint-plugin-perfectionist": "2.10.0",
+    "eslint-plugin-prettier": "^5.2.1",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.7",
+    "prettier": "^3.5.3",
+    "rimraf": "^6.0.1",
+    "semantic-release": "^24.2.3",
+    "tsup": "^8.4.0",
+    "typedoc": "^0.27.9",
+    "typedoc-plugin-missing-exports": "^3.1.0",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.18",
+    "vitest": "^3.1.1"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

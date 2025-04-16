@@ -1,6 +1,17 @@
 import { DEFAULT_BATCH_WINDOW_MS } from './constants';
 import { PayloadManager, PromiseLocker } from './payloadManager';
 
+export interface IMicroBatcherBuilder<TParamType, TReturnType> {
+  batchResolver: (
+    batchFunction: AsyncBatchFunction<
+      SingleFunctionPayload<TParamType, TReturnType>[],
+      TReturnType[]
+    >,
+    batchOptions?: BatchOptions
+  ) => IMicroBatcherBuilder<TParamType, TReturnType>;
+  build(): AsyncFunction<TParamType, TReturnType>;
+}
+
 /**
  * @example
  * type t1 = AsyncFunction<string, string>; // type t1 = (param: string) => Promise<string>
@@ -54,7 +65,7 @@ const DEFAULT_BATCH_OPTIONS: BatchOptions = {};
 
 export function MicroBatcher<TParamType, TReturnType>(
   originalFunction: AsyncFunction<TParamType, TReturnType>
-) {
+): IMicroBatcherBuilder<TParamType, TReturnType> {
   /** @hideconstructor */
   class MicroBatcherBuilder {
     private static _singlePayloadFunction: AsyncFunction<TParamType, TReturnType>;

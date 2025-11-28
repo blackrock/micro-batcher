@@ -27,13 +27,42 @@ type AsyncFunction<TParamType, TReturnType> = TParamType extends void
 
 /**
  * @internal
+ * Unwraps single-element tuples for single-parameter functions
+ * - For [T] -> T (single parameter)
+ * - For [T1, T2, ...] -> [T1, T2, ...] (multi-parameter, no unwrapping)
  */
-type SingleFunctionPayload<TParamType, TReturnType> =
-  Parameters<AsyncFunction<TParamType, TReturnType>> extends [infer _First, ...infer Rest]
-    ? Rest['length'] extends 0
-      ? Parameters<AsyncFunction<TParamType, TReturnType>>[0]
-      : Parameters<AsyncFunction<TParamType, TReturnType>>
-    : never;
+type UnwrapSingleElementTuple<T> = T extends readonly [infer Single] ? Single : T;
+
+/**
+ * @internal
+ * Represents the payload type for a function.
+ * For single-parameter functions: the parameter type itself
+ * For multi-parameter functions: the tuple of parameters
+ * This is defined as UnwrapSingleElementTuple applied to Parameters
+ */
+type SingleFunctionPayload<TParamType, TReturnType> = UnwrapSingleElementTuple<
+  Parameters<AsyncFunction<TParamType, TReturnType>>
+>;
+
+/**
+ * @internal
+ * Runtime helper to unwrap single-element tuples
+ * 
+ * Uses a structural type approach: the returned value is always either payload[0] or payload,
+ * and TypeScript can verify that (T[number] | T) is assignable to UnwrapSingleElementTuple<T>
+ * for appropriate T.
+ * 
+ * Note: This requires a minimal assertion because TypeScript cannot bridge runtime length checks
+ * with compile-time conditional types. The assertion is sound because it exactly mirrors the
+ * definition of UnwrapSingleElementTuple.
+ */
+function unwrapPayload<T extends readonly any[]>(
+  payload: T
+): T extends readonly [infer Single] ? Single : T {
+  return (payload.length === 1 ? payload[0] : payload) as T extends readonly [infer Single]
+    ? Single
+    : T;
+}
 
 /**
  * @example
@@ -75,7 +104,7 @@ export function MicroBatcher<TParamType, TReturnType>(
     // The timeout id of the current batcher, can be used for short circuit to start the batcher before the interval if needed (e.g. payloadWindowSizeLimit)
     private static _currentBatchTimeoutId: NodeJS.Timeout | undefined;
     private static _payloadManager = PayloadManager<
-      SingleFunctionPayload<TParamType, TReturnType>,
+      Parameters<AsyncFunction<TParamType, TReturnType>>,
       TReturnType
     >();
 
@@ -91,7 +120,7 @@ export function MicroBatcher<TParamType, TReturnType>(
 
     private static processPayload(
       payloadLockerList: PromiseLocker<
-        SingleFunctionPayload<TParamType, TReturnType>,
+        Parameters<AsyncFunction<TParamType, TReturnType>>,
         TReturnType
       >[]
     ) {
@@ -104,8 +133,11 @@ export function MicroBatcher<TParamType, TReturnType>(
         (MicroBatcherBuilder.shouldUseBatchResolverForSinglePayload && payloadList.length === 1);
       if (MicroBatcherBuilder._batchResolver && shouldUseBatchResolver) {
         MicroBatcherBuilder._activeBatchCount++;
-        MicroBatcherBuilder._batchResolver(payloadList)
-          .then((results) => {
+        // Unwrap single-element tuples for single-parameter functions
+        // For (param: T) => Promise<R>, payload is [T] but batch expects T[]
+        // For (p1: T1, p2: T2) => Promise<R>, payload is [T1, T2] and batch expects [T1, T2][]
+        const unwrappedPayloads = payloadList.map(unwrapPayload);
+        MicroBatcherBuilder._batchResolver(unwrappedPayloads)          .then((results) => {
             if (results.length !== payloadList.length) {
               throw Error(
                 `Batch function has different number of results (${results.length}) as payload (${payloadList.length})`
@@ -122,15 +154,15 @@ export function MicroBatcher<TParamType, TReturnType>(
             MicroBatcherBuilder._activeBatchCount--;
           });
       } else {
-        payloadList.forEach((payload: SingleFunctionPayload<TParamType, TReturnType>, index) => {
+        payloadList.forEach((wrappedPayload, index) => {
           const {
             promiseLock: { release, releaseWithError }
           } = payloadLockerList[index];
           MicroBatcherBuilder._activeBatchCount++;
 
-          // TODO: Try to make type better without ts-ignore
-          // @ts-ignore
-          MicroBatcherBuilder._singlePayloadFunction(...payload)
+          // Spread the parameters array into the function call
+          // @ts-ignore - TypeScript can't verify spread of tuple types matches function signature
+          MicroBatcherBuilder._singlePayloadFunction(...wrappedPayload)
             .then((result) => {
               release(result);
             })
@@ -171,7 +203,7 @@ export function MicroBatcher<TParamType, TReturnType>(
         apply: async (
           _target,
           _,
-          argumentsList: SingleFunctionPayload<TParamType, TReturnType>
+          argumentsList: Parameters<AsyncFunction<TParamType, TReturnType>>
         ) => {
           const result: () => Promise<TReturnType> =
             MicroBatcherBuilder._payloadManager.submitPayload(argumentsList);

@@ -5,6 +5,174 @@ const DEFAULT_BATCH_THRESHOLD = 200;
 // The timeout needs to be greater than DEFAULT_BATCH_THRESHOLD to stress test MicroBatcher
 const DEFAULT_API_RESPONSE_TIME = 300;
 
+describe('object parameter test', () => {
+  interface UserData {
+    id: number;
+    name: string;
+  }
+
+  const mockProcessUserFunction: (user: UserData) => Promise<string> = vi
+    .fn()
+    .mockImplementation(async (user: UserData): Promise<string> => {
+      return await new Promise((resolve) => {
+        setTimeout(async () => {
+          resolve(`User ${user.id}: ${user.name}`);
+        }, DEFAULT_API_RESPONSE_TIME);
+      });
+    });
+
+  const mockProcessUserBatchResolver: (payloadList: UserData[]) => Promise<string[]> = vi
+    .fn()
+    .mockImplementation(async (payloadList: UserData[]): Promise<string[]> => {
+      const result: Promise<string>[] = [];
+      payloadList.forEach((user) => {
+        result.push(
+          new Promise((resolve) => {
+            setTimeout(async () => {
+              resolve(`User ${user.id}: ${user.name}`);
+            }, DEFAULT_API_RESPONSE_TIME);
+          })
+        );
+      });
+      return await Promise.all(result);
+    });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('single function setup without batch function test', () => {
+    it('process user object', async () => {
+      const processUser = MicroBatcher(mockProcessUserFunction).build();
+
+      const result1 = processUser({ id: 1, name: 'Alice' });
+      const result2 = processUser({ id: 2, name: 'Bob' });
+
+      expect(await result1).toBe('User 1: Alice');
+      expect(await result2).toBe('User 2: Bob');
+      expect(mockProcessUserFunction).toBeCalledTimes(2);
+    });
+  });
+
+  describe('single function setup with batch function test', () => {
+    it('process user object with batching', async () => {
+      const processUser = MicroBatcher(mockProcessUserFunction)
+        .batchResolver(mockProcessUserBatchResolver)
+        .build();
+
+      const result1 = processUser({ id: 1, name: 'Alice' });
+      const result2 = processUser({ id: 2, name: 'Bob' });
+      const result3 = processUser({ id: 3, name: 'Charlie' });
+
+      expect(await result1).toBe('User 1: Alice');
+      expect(await result2).toBe('User 2: Bob');
+      expect(await result3).toBe('User 3: Charlie');
+      expect(mockProcessUserFunction).toBeCalledTimes(0);
+      expect(mockProcessUserBatchResolver).toBeCalledTimes(1);
+      expect(mockProcessUserBatchResolver).toBeCalledWith([
+        { id: 1, name: 'Alice' },
+        { id: 2, name: 'Bob' },
+        { id: 3, name: 'Charlie' }
+      ]);
+    });
+  });
+});
+
+describe('multiple object parameters test', () => {
+  interface UserInfo {
+    id: number;
+    name: string;
+  }
+
+  interface RequestOptions {
+    priority: 'low' | 'high';
+    timeout: number;
+  }
+
+  const mockProcessWithOptionsFunction: (
+    user: UserInfo,
+    options: RequestOptions
+  ) => Promise<string> = vi
+    .fn()
+    .mockImplementation(async (user: UserInfo, options: RequestOptions): Promise<string> => {
+      return await new Promise((resolve) => {
+        setTimeout(async () => {
+          resolve(`User ${user.id} (${user.name}) - Priority: ${options.priority}`);
+        }, DEFAULT_API_RESPONSE_TIME);
+      });
+    });
+
+  const mockProcessWithOptionsBatchResolver: (
+    payloadList: [UserInfo, RequestOptions][]
+  ) => Promise<string[]> = vi
+    .fn()
+    .mockImplementation(async (payloadList: [UserInfo, RequestOptions][]): Promise<string[]> => {
+      const result: Promise<string>[] = [];
+      payloadList.forEach(([user, options]) => {
+        result.push(
+          new Promise((resolve) => {
+            setTimeout(async () => {
+              resolve(`User ${user.id} (${user.name}) - Priority: ${options.priority}`);
+            }, DEFAULT_API_RESPONSE_TIME);
+          })
+        );
+      });
+      return await Promise.all(result);
+    });
+
+  afterEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe('single function setup without batch function test', () => {
+    it('process with multiple object parameters', async () => {
+      const processRequest = MicroBatcher(mockProcessWithOptionsFunction).build();
+
+      const result1 = processRequest({ id: 1, name: 'Alice' }, { priority: 'high', timeout: 5000 });
+      const result2 = processRequest({ id: 2, name: 'Bob' }, { priority: 'low', timeout: 10000 });
+
+      expect(await result1).toBe('User 1 (Alice) - Priority: high');
+      expect(await result2).toBe('User 2 (Bob) - Priority: low');
+      expect(mockProcessWithOptionsFunction).toBeCalledTimes(2);
+    });
+  });
+
+  describe('single function setup with batch function test', () => {
+    it('batch process with multiple object parameters', async () => {
+      const processRequest = MicroBatcher(mockProcessWithOptionsFunction)
+        .batchResolver(mockProcessWithOptionsBatchResolver)
+        .build();
+
+      const result1 = processRequest({ id: 1, name: 'Alice' }, { priority: 'high', timeout: 5000 });
+      const result2 = processRequest({ id: 2, name: 'Bob' }, { priority: 'low', timeout: 10000 });
+      const result3 = processRequest(
+        { id: 3, name: 'Charlie' },
+        { priority: 'high', timeout: 3000 }
+      );
+
+      expect(await result1).toBe('User 1 (Alice) - Priority: high');
+      expect(await result2).toBe('User 2 (Bob) - Priority: low');
+      expect(await result3).toBe('User 3 (Charlie) - Priority: high');
+      expect(mockProcessWithOptionsFunction).toBeCalledTimes(0);
+      expect(mockProcessWithOptionsBatchResolver).toBeCalledTimes(1);
+      expect(mockProcessWithOptionsBatchResolver).toBeCalledWith([
+        [
+          { id: 1, name: 'Alice' },
+          { priority: 'high', timeout: 5000 }
+        ],
+        [
+          { id: 2, name: 'Bob' },
+          { priority: 'low', timeout: 10000 }
+        ],
+        [
+          { id: 3, name: 'Charlie' },
+          { priority: 'high', timeout: 3000 }
+        ]
+      ]);
+    });
+  });
+});
+
 describe('multiple parameter test', () => {
   const mockMultiplyDoubleValuesFunction: (n1: number, n2: number) => Promise<number> = vi
     .fn()

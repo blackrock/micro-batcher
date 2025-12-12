@@ -32,6 +32,10 @@
   "files": [
     "dist/**/*"
   ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/blackrock/micro-batcher.git"
@@ -64,7 +68,7 @@
     "lint-staged": "^15.2.7",
     "prettier": "^3.5.3",
     "rimraf": "^6.0.1",
-    "semantic-release": "^24.2.3",
+    "semantic-release": "^25.0.2",
     "tsup": "^8.4.0",
     "typedoc": "^0.27.9",
     "typedoc-plugin-missing-exports": "^3.1.0",

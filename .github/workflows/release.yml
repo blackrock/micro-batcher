@@ -20,7 +20,7 @@ permissions:
   contents: write
   pull-requests: write
   issues: write
-  # id-token: write # Temporarily disabled OIDC
+  id-token: write
 
 jobs:
   release:
@@ -53,5 +53,3 @@ jobs:
         run: npx semantic-release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_MB }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_MB }}

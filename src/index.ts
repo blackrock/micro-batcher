@@ -47,11 +47,11 @@ type SingleFunctionPayload<TParamType, TReturnType> = UnwrapSingleElementTuple<
 /**
  * @internal
  * Runtime helper to unwrap single-element tuples
- * 
+ *
  * Uses a structural type approach: the returned value is always either payload[0] or payload,
  * and TypeScript can verify that (T[number] | T) is assignable to UnwrapSingleElementTuple<T>
  * for appropriate T.
- * 
+ *
  * Note: This requires a minimal assertion because TypeScript cannot bridge runtime length checks
  * with compile-time conditional types. The assertion is sound because it exactly mirrors the
  * definition of UnwrapSingleElementTuple.
@@ -137,7 +137,8 @@ export function MicroBatcher<TParamType, TReturnType>(
         // For (param: T) => Promise<R>, payload is [T] but batch expects T[]
         // For (p1: T1, p2: T2) => Promise<R>, payload is [T1, T2] and batch expects [T1, T2][]
         const unwrappedPayloads = payloadList.map(unwrapPayload);
-        MicroBatcherBuilder._batchResolver(unwrappedPayloads)          .then((results) => {
+        MicroBatcherBuilder._batchResolver(unwrappedPayloads)
+          .then((results) => {
             if (results.length !== payloadList.length) {
               throw Error(
                 `Batch function has different number of results (${results.length}) as payload (${payloadList.length})`

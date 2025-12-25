@@ -80,6 +80,7 @@ export const cusipToSecuritySelectorFamily = selectorFamily<Security, string>({
 ```
 
 #### Other Examples
+
 ##### Example 1: Single Parameter Function
 
 ```typescript
@@ -115,12 +116,14 @@ const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
 The default batching interval is 50ms, which can be overridden using `batchingIntervalInMs` in the batch options.
 
 ```typescript
-const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
-  MicroBatcher<[number, number], number>(multiply)
-    .batchResolver(batchMultiply, {
-      batchingIntervalInMs: 100
-    })
-    .build();
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> = MicroBatcher<
+  [number, number],
+  number
+>(multiply)
+  .batchResolver(batchMultiply, {
+    batchingIntervalInMs: 100
+  })
+  .build();
 ```
 
 ##### Example 4: Specify Payload Window Size Limit
@@ -132,12 +135,14 @@ However, an optional batch option `payloadWindowSizeLimit` can specify the upper
 Upon reaching the limit, the payloads are immediately delegated to the batch resolver.
 
 ```typescript
-const multiplyBatcher: (input1: number, input2: number) => Promise<number> =
-  MicroBatcher<[number, number], number>(multiply)
-    .batchResolver(batchMultiply, {
-      payloadWindowSizeLimit: 5
-    })
-    .build();
+const multiplyBatcher: (input1: number, input2: number) => Promise<number> = MicroBatcher<
+  [number, number],
+  number
+>(multiply)
+  .batchResolver(batchMultiply, {
+    payloadWindowSizeLimit: 5
+  })
+  .build();
 ```
 
 ## Development

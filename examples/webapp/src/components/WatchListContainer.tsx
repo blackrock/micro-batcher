@@ -16,7 +16,8 @@ export const WatchListContainer = () => {
                 <div style={{ height: '74px', border: '1px solid black', padding: '5px' }}>
                   Loading {cusip}
                 </div>
-              }>
+              }
+            >
               <WatchItem cusip={cusip} />
             </Suspense>
           );

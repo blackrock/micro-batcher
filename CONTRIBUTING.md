@@ -38,11 +38,11 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) w
 
 **Types that trigger releases:**
 
-| Type | Release | Example |
-|------|---------|---------|
-| `fix:` | Patch (1.0.0 → 1.0.1) | `fix: resolve object parameter handling` |
-| `feat:` | Minor (1.0.0 → 1.1.0) | `feat: add custom batch size support` |
-| `feat!:` or `fix!:` | Major (1.0.0 → 2.0.0) | `feat!: redesign public API` |
+| Type                | Release               | Example                                  |
+| ------------------- | --------------------- | ---------------------------------------- |
+| `fix:`              | Patch (1.0.0 → 1.0.1) | `fix: resolve object parameter handling` |
+| `feat:`             | Minor (1.0.0 → 1.1.0) | `feat: add custom batch size support`    |
+| `feat!:` or `fix!:` | Major (1.0.0 → 2.0.0) | `feat!: redesign public API`             |
 
 **Types that don't trigger releases:** `docs:`, `test:`, `chore:`, `ci:`, `build:`, `style:`, `refactor:`, `revert:`
 
@@ -52,7 +52,7 @@ This project uses [Conventional Commits](https://www.conventionalcommits.org/) w
 # Patch release - bug fix
 git commit -s -m "fix: resolve micro batcher object parameter issue"
 
-# Minor release - new feature  
+# Minor release - new feature
 git commit -s -m "feat: add retry mechanism for failed batches"
 
 # Major release - breaking change

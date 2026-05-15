@@ -1,54 +1,4 @@
-import { MicroBatcher } from 'micro-batcher';
-import { LOG_EVENT } from './constant';
-
-export const fetchSingleSecurity = async (cusip: string): Promise<Security> => {
-  return new Promise((resolve) => {
-    setTimeout(
-      () => {
-        resolve(mockCusipToSecurityDataRecord[cusip]);
-        console.log(`Fetched ${cusip}`);
-        document.dispatchEvent(
-          new CustomEvent<{ log: string }>(LOG_EVENT, {
-            detail: { log: `Fetched ${cusip}` }
-          })
-        );
-      },
-      randomIntFromInterval(1000, 3000)
-    );
-  });
-};
-
-const batchFetchSecurities = async (cusips: string[]): Promise<Security[]> => {
-  return new Promise((resolve) => {
-    setTimeout(
-      () => {
-        resolve(
-          cusips.map((cusip) => {
-            return mockCusipToSecurityDataRecord[cusip];
-          })
-        );
-        console.log(`[Batch] Fetched ${cusips}`);
-        document.dispatchEvent(
-          new CustomEvent<{ log: string }>(LOG_EVENT, {
-            detail: { log: `[Batch] Fetched ${cusips}` }
-          })
-        );
-      },
-      randomIntFromInterval(1000, 3000)
-    );
-  });
-};
-
-export const decoratedFetchSingleSecurity = MicroBatcher(fetchSingleSecurity)
-  .batchResolver(batchFetchSecurities, {
-    payloadWindowSizeLimit: 4,
-    batchingIntervalInMs: 50
-  })
-  .build();
-
-function randomIntFromInterval(min: number, max: number) {
-  return Math.floor(Math.random() * (max - min + 1) + min);
-}
+import { MicroBatcher, BatchOptions } from 'micro-batcher';
 
 export type Security = {
   cusip: string;
@@ -56,6 +6,166 @@ export type Security = {
   price: number;
   marketCap: number;
 };
+
+export type SecurityResult =
+  | { cusip: string; status: 'success'; data: Security }
+  | { cusip: string; status: 'error'; error: string };
+
+export type SimulateErrorMode = 'none' | 'batch-reject' | 'batch-mismatch' | 'random-batch-reject';
+
+export interface ExperimentConfig {
+  enableMicroBatcher: boolean;
+  batchingIntervalInMs: number;
+  payloadWindowSizeLimit: number | undefined;
+  shouldUseBatchResolverForSinglePayload: boolean;
+  apiLatencyMin: number;
+  apiLatencyMax: number;
+  simulateError: SimulateErrorMode;
+}
+
+export type LogEntry = {
+  timestamp: number;
+  message: string;
+  type: 'info' | 'batch' | 'single' | 'system' | 'error';
+};
+
+function randomIntFromInterval(min: number, max: number) {
+  return Math.floor(Math.random() * (max - min + 1) + min);
+}
+
+const createFetchSingleSecurity = (
+  latencyMin: number,
+  latencyMax: number,
+  addLog: (entry: LogEntry) => void
+) => {
+  return async (cusip: string): Promise<Security> => {
+    return new Promise((resolve) => {
+      const delay = randomIntFromInterval(latencyMin, latencyMax);
+      setTimeout(() => {
+        resolve(mockCusipToSecurityDataRecord[cusip]);
+        addLog({
+          timestamp: Date.now(),
+          message: `[Single] Fetched ${cusip} (${delay}ms)`,
+          type: 'single'
+        });
+      }, delay);
+    });
+  };
+};
+
+const createBatchFetchSecurities = (
+  latencyMin: number,
+  latencyMax: number,
+  addLog: (entry: LogEntry) => void,
+  simulateError: SimulateErrorMode = 'none'
+) => {
+  return async (cusips: string[]): Promise<Security[]> => {
+    return new Promise((resolve, reject) => {
+      const delay = randomIntFromInterval(latencyMin, latencyMax);
+      setTimeout(() => {
+        if (simulateError === 'batch-reject') {
+          addLog({
+            timestamp: Date.now(),
+            message: `[Batch] Simulating rejection for [${cusips.join(', ')}]`,
+            type: 'error'
+          });
+          reject(new Error('Simulated batch resolver failure'));
+          return;
+        }
+
+        if (simulateError === 'random-batch-reject') {
+          const shouldFail = Math.random() < 0.5;
+          if (shouldFail) {
+            addLog({
+              timestamp: Date.now(),
+              message: `[Batch] Random failure for [${cusips.join(', ')}]`,
+              type: 'error'
+            });
+            reject(new Error(`Random batch failure for [${cusips.join(', ')}]`));
+            return;
+          }
+        }
+
+        if (simulateError === 'batch-mismatch') {
+          addLog({
+            timestamp: Date.now(),
+            message: `[Batch] Simulating mismatched results for [${cusips.join(', ')}] — returning only 1 result instead of ${cusips.length}`,
+            type: 'error'
+          });
+          resolve([mockCusipToSecurityDataRecord[cusips[0]]]);
+          return;
+        }
+
+        resolve(cusips.map((cusip) => mockCusipToSecurityDataRecord[cusip]));
+        addLog({
+          timestamp: Date.now(),
+          message: `[Batch] Fetched [${cusips.join(', ')}] (${delay}ms)`,
+          type: 'batch'
+        });
+      }, delay);
+    });
+  };
+};
+
+export async function runExperiment(
+  cusips: string[],
+  config: ExperimentConfig,
+  addLog: (entry: LogEntry) => void
+): Promise<SecurityResult[]> {
+  const fetchSingle = createFetchSingleSecurity(config.apiLatencyMin, config.apiLatencyMax, addLog);
+  const batchFetch = createBatchFetchSecurities(config.apiLatencyMin, config.apiLatencyMax, addLog, config.simulateError);
+
+  addLog({
+    timestamp: Date.now(),
+    message: `Starting experiment with ${cusips.length} securities | Micro Batcher: ${config.enableMicroBatcher ? 'ON' : 'OFF'}`,
+    type: 'system'
+  });
+
+  const fetchFn = (() => {
+    if (config.enableMicroBatcher) {
+      const batchOptions: BatchOptions = {
+        batchingIntervalInMs: config.batchingIntervalInMs,
+        payloadWindowSizeLimit: config.payloadWindowSizeLimit,
+        shouldUseBatchResolverForSinglePayload: config.shouldUseBatchResolverForSinglePayload
+      };
+
+      addLog({
+        timestamp: Date.now(),
+        message: `Config: interval=${config.batchingIntervalInMs}ms, windowSize=${config.payloadWindowSizeLimit ?? 'unlimited'}, singlePayloadBatch=${config.shouldUseBatchResolverForSinglePayload}`,
+        type: 'info'
+      });
+
+      return MicroBatcher(fetchSingle)
+        .batchResolver(batchFetch, batchOptions)
+        .build();
+    } else {
+      return fetchSingle;
+    }
+  })();
+
+  const settled = await Promise.allSettled(cusips.map((cusip) => fetchFn(cusip)));
+
+  return settled.map((result, index) => {
+    const cusip = cusips[index];
+    if (result.status === 'fulfilled') {
+      return { cusip, status: 'success' as const, data: result.value };
+    } else {
+      return { cusip, status: 'error' as const, error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
+    }
+  });
+}
+
+export const ALL_CUSIPS = [
+  'AAPL',
+  'GOOGL',
+  'AMZN',
+  'NFLX',
+  'FB',
+  'SPCX',
+  'NZAC',
+  'YOTAU',
+  'IMXI'
+];
 
 const mockCusipToSecurityDataRecord: Record<string, Security> = {
   AAPL: {

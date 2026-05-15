@@ -4,7 +4,7 @@ import { Queue } from './queue';
 export class PromiseLock<O> {
   private promise: Promise<O>;
   private resolve: ((result: O) => void) | undefined;
-  private reject: ((result: O) => void) | undefined;
+  private reject: ((error: any) => void) | undefined;
 
   constructor() {
     this.promise = new Promise<O>((resolve, reject) => {

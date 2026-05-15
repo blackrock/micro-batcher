@@ -1,56 +1,46 @@
-import { Suspense, useCallback } from 'react';
-import { useRecoilState, useRecoilValue, useSetRecoilState } from 'recoil';
-import './App.css';
-import { FaangSecurityContainer } from './components/FaangSecurityContainer';
-import { WatchListContainer } from './components/WatchListContainer';
-import { enableMicroBatcherAtom, logsAtom } from './recoil/store';
+import { ConfigPanel } from './components/ConfigPanel';
+import { ExperimentPanel } from './components/ExperimentPanel';
+import { LogViewer } from './components/LogViewer';
+import { ResultsPanel } from './components/ResultsPanel';
 
 function App() {
-  const [enableMicroBatcher, setEnableMicroBatcher] = useRecoilState(enableMicroBatcherAtom);
-  const setLogs = useSetRecoilState(logsAtom);
-  const logs = useRecoilValue(logsAtom);
-
-  const onChange = useCallback(() => {
-    setEnableMicroBatcher((prev) => !prev);
-    setLogs((prev) => [
-      ...prev,
-      '------------------------------',
-      `Micro Batcher is ${!enableMicroBatcher ? 'enabled' : 'disabled'}`
-    ]);
-  }, [enableMicroBatcher, setEnableMicroBatcher, setLogs]);
-
   return (
-    <>
-      <h1>Micro Batcher + React & Recoil Example</h1>
-      <div className="container">
-        <div className="card">
-          <h2>Settings</h2>
+    <div className="min-h-screen bg-gray-950 text-gray-100">
+      <header className="border-b border-gray-800 bg-gray-900/80 backdrop-blur-sm sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div>
-            <textarea
-              style={{ width: '100%', height: '150px', resize: 'none' }}
-              disabled
-              value={logs.join('\n')}
-            />
+            <h1 className="text-xl font-bold tracking-tight text-white">
+              Micro Batcher Playground
+            </h1>
+            <p className="text-sm text-gray-400 mt-0.5">
+              Experiment with batching patterns and configurations
+            </p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <label>Toggle Micro Batcher</label>
-            <label className="switch">
-              <input type="checkbox" onChange={onChange} checked={enableMicroBatcher} />
-              <span className="slider round"></span>
-            </label>
-          </div>
+          <a
+            href="https://github.com/nicholascowan/micro-batcher"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-gray-400 hover:text-white transition-colors"
+          >
+            GitHub &rarr;
+          </a>
         </div>
-        <div className="card">
-          <h2>FAANG Stocks</h2>
-          <Suspense fallback={<div>Loading...</div>}>
-            <FaangSecurityContainer />
-          </Suspense>
+      </header>
+
+      <main className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Left column: Config */}
+        <div className="lg:col-span-4 space-y-6">
+          <ConfigPanel />
+          <ExperimentPanel />
         </div>
-        <div className="card">
-          <WatchListContainer />
+
+        {/* Right column: Results + Logs */}
+        <div className="lg:col-span-8 space-y-6">
+          <ResultsPanel />
+          <LogViewer />
         </div>
-      </div>
-    </>
+      </main>
+    </div>
   );
 }
 

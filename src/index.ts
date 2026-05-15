@@ -151,6 +151,11 @@ export function MicroBatcher<TParamType, TReturnType>(
               release(result);
             });
           })
+          .catch((e) => {
+            payloadLockerList.forEach(({ promiseLock: { releaseWithError } }) => {
+              releaseWithError(e);
+            });
+          })
           .finally(() => {
             MicroBatcherBuilder._activeBatchCount--;
           });
@@ -219,7 +224,7 @@ export function MicroBatcher<TParamType, TReturnType>(
           startBatcherEarlierIfEligible();
 
           return result().catch((e) => {
-            throw Error(e);
+            throw e;
           });
         }
       });

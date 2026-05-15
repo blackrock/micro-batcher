@@ -50,7 +50,7 @@ describe('object parameter test', () => {
 
       expect(await result1).toBe('User 1: Alice');
       expect(await result2).toBe('User 2: Bob');
-      expect(mockProcessUserFunction).toBeCalledTimes(2);
+      expect(mockProcessUserFunction).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -67,9 +67,9 @@ describe('object parameter test', () => {
       expect(await result1).toBe('User 1: Alice');
       expect(await result2).toBe('User 2: Bob');
       expect(await result3).toBe('User 3: Charlie');
-      expect(mockProcessUserFunction).toBeCalledTimes(0);
-      expect(mockProcessUserBatchResolver).toBeCalledTimes(1);
-      expect(mockProcessUserBatchResolver).toBeCalledWith([
+      expect(mockProcessUserFunction).toHaveBeenCalledTimes(0);
+      expect(mockProcessUserBatchResolver).toHaveBeenCalledTimes(1);
+      expect(mockProcessUserBatchResolver).toHaveBeenCalledWith([
         { id: 1, name: 'Alice' },
         { id: 2, name: 'Bob' },
         { id: 3, name: 'Charlie' }
@@ -133,7 +133,7 @@ describe('multiple object parameters test', () => {
 
       expect(await result1).toBe('User 1 (Alice) - Priority: high');
       expect(await result2).toBe('User 2 (Bob) - Priority: low');
-      expect(mockProcessWithOptionsFunction).toBeCalledTimes(2);
+      expect(mockProcessWithOptionsFunction).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -153,9 +153,9 @@ describe('multiple object parameters test', () => {
       expect(await result1).toBe('User 1 (Alice) - Priority: high');
       expect(await result2).toBe('User 2 (Bob) - Priority: low');
       expect(await result3).toBe('User 3 (Charlie) - Priority: high');
-      expect(mockProcessWithOptionsFunction).toBeCalledTimes(0);
-      expect(mockProcessWithOptionsBatchResolver).toBeCalledTimes(1);
-      expect(mockProcessWithOptionsBatchResolver).toBeCalledWith([
+      expect(mockProcessWithOptionsFunction).toHaveBeenCalledTimes(0);
+      expect(mockProcessWithOptionsBatchResolver).toHaveBeenCalledTimes(1);
+      expect(mockProcessWithOptionsBatchResolver).toHaveBeenCalledWith([
         [
           { id: 1, name: 'Alice' },
           { priority: 'high', timeout: 5000 }
@@ -214,7 +214,7 @@ describe('multiple parameter test', () => {
 
       expect(await result1).toBe(2);
       expect(await result2).toBe(4);
-      expect(mockMultiplyDoubleValuesFunction).toBeCalledTimes(2);
+      expect(mockMultiplyDoubleValuesFunction).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -229,8 +229,8 @@ describe('multiple parameter test', () => {
 
       expect(await result1).toBe(2);
       expect(await result2).toBe(4);
-      expect(mockMultiplyDoubleValuesFunction).toBeCalledTimes(0);
-      expect(mockMultiplyDoubleValuesBatchResolver).toBeCalledTimes(1);
+      expect(mockMultiplyDoubleValuesFunction).toHaveBeenCalledTimes(0);
+      expect(mockMultiplyDoubleValuesBatchResolver).toHaveBeenCalledTimes(1);
     });
   });
 });
@@ -316,8 +316,8 @@ describe('interference test', () => {
       expect(await stringResult2).toBe('two-two');
       expect(await stringResult3).toBe('three-three');
 
-      expect(mockSingleStringValueBatchResolver).toBeCalledTimes(1);
-      expect(mockMultiplySingleValueBatchResolver).toBeCalledTimes(1);
+      expect(mockSingleStringValueBatchResolver).toHaveBeenCalledTimes(1);
+      expect(mockMultiplySingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
   });
 });
@@ -355,7 +355,7 @@ describe('without batch resolve', () => {
 
       expect(await result1).toBe(2);
       expect(await result2).toBe(4);
-      expect(mockSingleValueFunction).toBeCalledTimes(2);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(2);
     });
   });
 
@@ -428,8 +428,8 @@ describe('with batch resolver', () => {
       expect(await result1).toBe(2);
       expect(await result2).toBe(4);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(0);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(1);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
 
     it('should trigger batch function once, when batcher is called twice within theshold - 2', async () => {
@@ -450,8 +450,8 @@ describe('with batch resolver', () => {
       expect(await result1).toBe(2);
       expect(await result2).toBe(4);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(0);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(1);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
 
     it('should trigger single function once, when only batcher is called once', async () => {
@@ -464,8 +464,8 @@ describe('with batch resolver', () => {
 
       expect(await result1).toBe(2);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(1);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(0);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(1);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(0);
     });
 
     it('should trigger single function twice, when batcher is called twice not within threshold', async () => {
@@ -486,8 +486,8 @@ describe('with batch resolver', () => {
       expect(await result1).toBe(2);
       expect(await result2).toBe(4);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(2);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(0);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(2);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(0);
     });
 
     it('should trigger batch function once and single function once, when batcher is called twice within theshold and called once not within threshold', async () => {
@@ -516,8 +516,8 @@ describe('with batch resolver', () => {
       expect(await result2).toBe(4);
       expect(await result3).toBe(6);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(1);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(1);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(1);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
 
     describe('shouldUseBatchFunctionForSinglePayload is true', () => {
@@ -548,9 +548,58 @@ describe('with batch resolver', () => {
         expect(await result2).toBe(4);
         expect(await result3).toBe(6);
 
-        expect(mockSingleValueFunction).toBeCalledTimes(0);
-        expect(mockSingleValueBatchResolver).toBeCalledTimes(2);
+        expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+        expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(2);
       });
+    });
+  });
+
+  describe('batch resolver error handling', () => {
+    it('should propagate error to all callers when batch resolver rejects', async () => {
+      const mockRejectingBatchResolver: (payloadList: number[]) => Promise<number[]> = vi
+        .fn()
+        .mockImplementation(async (): Promise<number[]> => {
+          throw new Error('batch resolver failed');
+        });
+
+      const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+        .batchResolver(mockRejectingBatchResolver, {
+          batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD
+        })
+        .build();
+
+      const result1 = multiplyByTwo(1);
+      const result2 = multiplyByTwo(2);
+
+      await expect(result1).rejects.toThrow('batch resolver failed');
+      await expect(result2).rejects.toThrow('batch resolver failed');
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+      expect(mockRejectingBatchResolver).toHaveBeenCalledTimes(1);
+    });
+
+    it('should propagate error to all callers when batch resolver returns mismatched result count', async () => {
+      const mockMismatchBatchResolver: (payloadList: number[]) => Promise<number[]> = vi
+        .fn()
+        .mockImplementation(async (): Promise<number[]> => {
+          return [1];
+        });
+
+      const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+        .batchResolver(mockMismatchBatchResolver, {
+          batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD
+        })
+        .build();
+
+      const result1 = multiplyByTwo(1);
+      const result2 = multiplyByTwo(2);
+
+      await expect(result1).rejects.toThrow(
+        'Batch function has different number of results (1) as payload (2)'
+      );
+      await expect(result2).rejects.toThrow(
+        'Batch function has different number of results (1) as payload (2)'
+      );
+      expect(mockMismatchBatchResolver).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -574,8 +623,8 @@ describe('with batch resolver', () => {
       expect(await result4).toBe(8);
       expect(await result5).toBe(10);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(0);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(1);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
 
     it('should trigger batch function twice, when payloadWindowSizeLimit is 3 and batcher is called 5 times within threshold', async () => {
@@ -597,8 +646,8 @@ describe('with batch resolver', () => {
       expect(await result4).toBe(8);
       expect(await result5).toBe(10);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(0);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(2);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(2);
     });
 
     it('should trigger batch function once and single function once, when payloadWindowSizeLimit is 3 and batcher is called 4 times within threshold', async () => {
@@ -618,8 +667,8 @@ describe('with batch resolver', () => {
       expect(await result3).toBe(6);
       expect(await result4).toBe(8);
 
-      expect(mockSingleValueFunction).toBeCalledTimes(1);
-      expect(mockSingleValueBatchResolver).toBeCalledTimes(1);
+      expect(mockSingleValueFunction).toHaveBeenCalledTimes(1);
+      expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
   });
 });

@@ -88,9 +88,7 @@ export const ConfigPanel = () => {
 
         {/* shouldUseBatchResolverForSinglePayload */}
         <div className="flex items-center justify-between py-1">
-          <label className="text-sm text-gray-300 pr-2">
-            Batch single payload
-          </label>
+          <label className="text-sm text-gray-300 pr-2">Batch single payload</label>
           <button
             onClick={() =>
               update(
@@ -104,9 +102,7 @@ export const ConfigPanel = () => {
           >
             <span
               className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
-                config.shouldUseBatchResolverForSinglePayload
-                  ? 'translate-x-5'
-                  : 'translate-x-0'
+                config.shouldUseBatchResolverForSinglePayload ? 'translate-x-5' : 'translate-x-0'
               }`}
             />
           </button>
@@ -116,12 +112,14 @@ export const ConfigPanel = () => {
         <div>
           <label className="text-sm text-gray-300 block mb-2">Simulate Error</label>
           <div className="flex rounded-lg overflow-hidden border border-gray-700">
-            {([
-              { value: 'none', label: 'None' },
-              { value: 'batch-reject', label: 'All Reject' },
-              { value: 'batch-mismatch', label: 'Mismatch' },
-              { value: 'random-batch-reject', label: 'Random' }
-            ] as const).map(({ value, label }) => (
+            {(
+              [
+                { value: 'none', label: 'None' },
+                { value: 'batch-reject', label: 'All Reject' },
+                { value: 'batch-mismatch', label: 'Mismatch' },
+                { value: 'random-batch-reject', label: 'Random' }
+              ] as const
+            ).map(({ value, label }) => (
               <button
                 key={value}
                 onClick={() => update('simulateError', value)}
@@ -137,8 +135,10 @@ export const ConfigPanel = () => {
           </div>
           <p className="text-[10px] text-gray-600 mt-1">
             {config.simulateError === 'batch-reject' && 'Every batch resolver call will throw'}
-            {config.simulateError === 'batch-mismatch' && 'Batch resolver returns fewer results than expected'}
-            {config.simulateError === 'random-batch-reject' && 'Each batch has ~50% chance of failure — best with Window Size Limit set'}
+            {config.simulateError === 'batch-mismatch' &&
+              'Batch resolver returns fewer results than expected'}
+            {config.simulateError === 'random-batch-reject' &&
+              'Each batch has ~50% chance of failure — best with Window Size Limit set'}
             {config.simulateError === 'none' && 'No error simulation'}
           </p>
         </div>

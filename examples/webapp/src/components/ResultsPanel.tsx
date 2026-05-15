@@ -47,9 +47,7 @@ export const ResultsPanel = () => {
                   <span className="font-mono text-sm font-semibold text-indigo-400">
                     {result.cusip}
                   </span>
-                  <span className="text-xs text-gray-500">
-                    ${result.data.price.toFixed(2)}
-                  </span>
+                  <span className="text-xs text-gray-500">${result.data.price.toFixed(2)}</span>
                 </div>
                 <div className="text-xs text-gray-400 truncate">{result.data.security}</div>
                 <div className="text-[10px] text-gray-500 mt-1">

@@ -81,9 +81,7 @@ export const LogViewer = () => {
                   >
                     {entry.type}
                   </span>
-                  <span className={typeColors[entry.type] ?? 'text-gray-300'}>
-                    {entry.message}
-                  </span>
+                  <span className={typeColors[entry.type] ?? 'text-gray-300'}>{entry.message}</span>
                 </div>
               );
             })}

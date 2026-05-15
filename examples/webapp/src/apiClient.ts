@@ -113,7 +113,12 @@ export async function runExperiment(
   addLog: (entry: LogEntry) => void
 ): Promise<SecurityResult[]> {
   const fetchSingle = createFetchSingleSecurity(config.apiLatencyMin, config.apiLatencyMax, addLog);
-  const batchFetch = createBatchFetchSecurities(config.apiLatencyMin, config.apiLatencyMax, addLog, config.simulateError);
+  const batchFetch = createBatchFetchSecurities(
+    config.apiLatencyMin,
+    config.apiLatencyMax,
+    addLog,
+    config.simulateError
+  );
 
   addLog({
     timestamp: Date.now(),
@@ -135,9 +140,7 @@ export async function runExperiment(
         type: 'info'
       });
 
-      return MicroBatcher(fetchSingle)
-        .batchResolver(batchFetch, batchOptions)
-        .build();
+      return MicroBatcher(fetchSingle).batchResolver(batchFetch, batchOptions).build();
     } else {
       return fetchSingle;
     }
@@ -150,22 +153,16 @@ export async function runExperiment(
     if (result.status === 'fulfilled') {
       return { cusip, status: 'success' as const, data: result.value };
     } else {
-      return { cusip, status: 'error' as const, error: result.reason instanceof Error ? result.reason.message : String(result.reason) };
+      return {
+        cusip,
+        status: 'error' as const,
+        error: result.reason instanceof Error ? result.reason.message : String(result.reason)
+      };
     }
   });
 }
 
-export const ALL_CUSIPS = [
-  'AAPL',
-  'GOOGL',
-  'AMZN',
-  'NFLX',
-  'FB',
-  'SPCX',
-  'NZAC',
-  'YOTAU',
-  'IMXI'
-];
+export const ALL_CUSIPS = ['AAPL', 'GOOGL', 'AMZN', 'NFLX', 'FB', 'SPCX', 'NZAC', 'YOTAU', 'IMXI'];
 
 const mockCusipToSecurityDataRecord: Record<string, Security> = {
   AAPL: {

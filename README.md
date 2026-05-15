@@ -27,7 +27,7 @@ pnpm add @blackrock-oss/micro-batcher
 
 The [Examples Directory](./examples) is a great resource for learning how to setup Micro Batcher.
 
-[Web Application](./examples/webapp) is a playground application which provides example on how to configure and integrate Micro Batcher with [Recoil's Data Fetching Pattern using Selector Family](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters).
+[Web Application](./examples/webapp) is a playground application which provides examples on how to configure and integrate Micro Batcher, including error handling scenarios and batch resilience demonstrations.
 
 ## Usage
 
@@ -62,21 +62,14 @@ export const decoratedFetchSecurity = MicroBatcher(fetchSingleSecurity)
   .build();
 ```
 
-In this example, the decorated function is being used in conjunction with [Recoil's Data Fetching Pattern](https://recoiljs.org/docs/guides/asynchronous-data-queries/#queries-with-parameters) which combines the benefit of selector caching and automatic burst APIs batching.
+The decorated function has the same signature as the original, so it can be used as a drop-in replacement:
 
 ```typescript
-export const cusipToSecuritySelectorFamily = selectorFamily<Security, string>({
-  key: 'cusipToSecuritySelectorFamily',
-  get:
-    (cusip: string) =>
-    ({ get }) => {
-      const enableMicroBatcher = get(enableMicroBatcherAtom);
-      if (enableMicroBatcher) {
-        return decoratedFetchSecurity(cusip);
-      }
-      return fetchSingleSecurity(cusip);
-    }
-});
+// With Micro Batcher enabled
+const result = await decoratedFetchSecurity('AAPL');
+
+// Without Micro Batcher — same signature, same result
+const result = await fetchSingleSecurity('AAPL');
 ```
 
 #### Other Examples

@@ -1,4 +1,19 @@
-Please annotate your PR title to describe what the PR does, then give a brief bulleted description of your PR below. PR titles should begin with [BUGFIX], [FEATURE], [DOCS], [MAINTENANCE], or [CONTRIB]. If a new feature introduces breaking changes for the <project name> or configuration files, please also add [BREAKING].
+Please use [Conventional Commits](https://www.conventionalcommits.org/) format for your PR title, as it drives semantic versioning and release notes.
+
+**Format:** `<type>: <description>`
+
+| Type       | Purpose                     | Release    |
+| ---------- | --------------------------- | ---------- |
+| `feat`     | New feature                 | Minor      |
+| `fix`      | Bug fix                     | Patch      |
+| `docs`     | Documentation only          | No release |
+| `test`     | Adding or updating tests    | No release |
+| `chore`    | Maintenance, CI, tooling    | No release |
+| `style`    | Formatting, no logic change | No release |
+| `refactor` | Code restructuring          | No release |
+| `perf`     | Performance improvement     | Patch      |
+
+For breaking changes, add `!` after the type (e.g., `feat!: ...`) or include `BREAKING CHANGE:` in the PR body.
 
 ## Description
 

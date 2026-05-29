@@ -108,6 +108,37 @@ export const ConfigPanel = () => {
           </button>
         </div>
 
+        {/* Error Strategy */}
+        <div>
+          <label className="text-sm text-gray-300 block mb-2">Error Strategy</label>
+          <div className="flex rounded-lg overflow-hidden border border-gray-700">
+            {(
+              [
+                { value: 'broadcast', label: 'Broadcast' },
+                { value: 'isolate', label: 'Isolate' }
+              ] as const
+            ).map(({ value, label }) => (
+              <button
+                key={value}
+                onClick={() => update('errorStrategy', value)}
+                className={`flex-1 px-2 py-1.5 text-xs font-medium transition-colors ${
+                  config.errorStrategy === value
+                    ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/40'
+                    : 'bg-gray-800 text-gray-500 hover:text-gray-300'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-gray-600 mt-1">
+            {config.errorStrategy === 'broadcast' &&
+              'A batch resolver error rejects every caller in the batch'}
+            {config.errorStrategy === 'isolate' &&
+              'Per-item promises — a failed caller bails immediately while the rest of the batch continues'}
+          </p>
+        </div>
+
         {/* Simulate Error */}
         <div>
           <label className="text-sm text-gray-300 block mb-2">Simulate Error</label>
@@ -117,7 +148,8 @@ export const ConfigPanel = () => {
                 { value: 'none', label: 'None' },
                 { value: 'batch-reject', label: 'All Reject' },
                 { value: 'batch-mismatch', label: 'Mismatch' },
-                { value: 'random-batch-reject', label: 'Random' }
+                { value: 'random-batch-reject', label: 'Random' },
+                { value: 'partial-item-reject', label: 'Partial' }
               ] as const
             ).map(({ value, label }) => (
               <button
@@ -139,6 +171,8 @@ export const ConfigPanel = () => {
               'Batch resolver returns fewer results than expected'}
             {config.simulateError === 'random-batch-reject' &&
               'Each batch has ~50% chance of failure — best with Window Size Limit set'}
+            {config.simulateError === 'partial-item-reject' &&
+              'Each item has ~40% chance of failing individually — pair with Isolate to see survivors succeed'}
             {config.simulateError === 'none' && 'No error simulation'}
           </p>
         </div>

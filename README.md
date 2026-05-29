@@ -138,6 +138,32 @@ const multiplyBatcher: (input1: number, input2: number) => Promise<number> = Mic
   .build();
 ```
 
+##### Example 5: Error Strategy
+
+By default, Micro Batcher uses the `broadcast` error strategy — if the batch resolver throws, all callers in the batch receive the same error.
+
+The `isolate` error strategy enables per-item error handling. The batch resolver returns `Promise<TReturnType>[]` (an array of independent promises), allowing each caller to settle independently. A failed or cancelled caller bails immediately without waiting for or affecting the rest of the batch.
+
+```typescript
+// Broadcast (default) — batch resolver error rejects all callers
+const decoratedFn = MicroBatcher(fetchSingle)
+  .batchResolver(batchFetch) // errorStrategy defaults to { type: 'broadcast' }
+  .build();
+
+// Isolate — per-item promises, each caller settles independently
+const batchFetchIsolated = (cusips: string[]): Promise<Security>[] => {
+  return cusips.map((cusip) => fetchSingle(cusip)); // each item is an independent promise
+};
+
+const decoratedFn = MicroBatcher(fetchSingle)
+  .batchResolver(batchFetchIsolated, {
+    errorStrategy: { type: 'isolate' }
+  })
+  .build();
+```
+
+In `isolate` mode, if a caller's underlying API call is cancelled or fails, that caller receives the error immediately while other callers in the same batch continue processing. If the batch resolver itself throws synchronously, all callers are rejected (broadcast fallback).
+
 ## Development
 
 ### Local Development
@@ -169,7 +195,6 @@ pnpm run test:dev
 
 ### Features
 
-- [ ] API Cancellation
 - [ ] Concurrent Batcher Limit Support
 - [ ] Rate Limiting and Throttling Policies Support
 

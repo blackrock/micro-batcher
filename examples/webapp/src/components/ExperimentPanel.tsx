@@ -35,8 +35,11 @@ export const ExperimentPanel = () => {
       { timestamp: Date.now(), message: '── New Experiment ──', type: 'system' }
     ]);
 
-    const results = await runExperiment(selectedCusips, config, addLog);
-    setResults(results);
+    const results = await runExperiment(selectedCusips, config, addLog, (result) => {
+      // Append each caller's result the moment it settles so a bailing item in isolate
+      // mode renders its error card immediately, without waiting for the rest of the batch.
+      setResults((prev) => [...prev, result]);
+    });
 
     const successes = results.filter((r) => r.status === 'success').length;
     const failures = results.filter((r) => r.status === 'error').length;

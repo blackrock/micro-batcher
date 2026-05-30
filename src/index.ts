@@ -2,13 +2,20 @@ import { DEFAULT_BATCH_WINDOW_MS } from './constants';
 import { PayloadManager, PromiseLocker } from './payloadManager';
 
 export interface IMicroBatcherBuilder<TParamType, TReturnType> {
-  batchResolver: (
+  batchResolver(
     batchFunction: AsyncBatchFunction<
       SingleFunctionPayload<TParamType, TReturnType>[],
       TReturnType[]
     >,
     batchOptions?: BatchOptions
-  ) => IMicroBatcherBuilder<TParamType, TReturnType>;
+  ): IMicroBatcherBuilder<TParamType, TReturnType>;
+  batchResolver(
+    batchFunction: AsyncIsolateBatchFunction<
+      SingleFunctionPayload<TParamType, TReturnType>[],
+      TReturnType
+    >,
+    batchOptions: BatchOptions & { errorStrategy: IsolateErrorStrategy }
+  ): IMicroBatcherBuilder<TParamType, TReturnType>;
   build(): AsyncFunction<TParamType, TReturnType>;
 }
 
@@ -75,11 +82,25 @@ type AsyncBatchFunction<TBatchParamType extends any[], TBatchReturnType extends 
   batchParams: TBatchParamType
 ) => Promise<TBatchReturnType>;
 
+type AsyncIsolateBatchFunction<TBatchParamType extends any[], TItemReturnType> = (
+  batchParams: TBatchParamType
+) => Promise<TItemReturnType>[];
+
+export type BroadcastErrorStrategy = { type: 'broadcast' };
+export type IsolateErrorStrategy = { type: 'isolate' };
+export type ErrorStrategy = BroadcastErrorStrategy | IsolateErrorStrategy;
+
 export interface BatchOptions {
   /**
    * Optional. Default is 50ms, override to set the interval for batching the payload.
    */
   batchingIntervalInMs?: number;
+  /**
+   * Optional. Default is 'broadcast'. Determines error propagation behavior when the batch resolver fails.
+   * - 'broadcast': propagates the error to all callers in the batch (default behavior).
+   * - 'isolate': batch resolver returns Promise<TReturnType>[] (per-item promises), each settles independently allowing immediate bail.
+   */
+  errorStrategy?: ErrorStrategy;
   /**
    * Optional. If set with a valid size, once the current payload queue reaches the limit before the interval ends, kick start the batcher immediately.
    */
@@ -99,7 +120,9 @@ export function MicroBatcher<TParamType, TReturnType>(
   class MicroBatcherBuilder {
     private static _singlePayloadFunction: AsyncFunction<TParamType, TReturnType>;
     private static _batchResolver:
-      | AsyncBatchFunction<SingleFunctionPayload<TParamType, TReturnType>[], TReturnType[]>
+      | ((
+          batchParams: SingleFunctionPayload<TParamType, TReturnType>[]
+        ) => Promise<TReturnType[]> | Promise<TReturnType>[])
       | undefined;
     // The timeout id of the current batcher, can be used for short circuit to start the batcher before the interval if needed (e.g. payloadWindowSizeLimit)
     private static _currentBatchTimeoutId: NodeJS.Timeout | undefined;
@@ -113,6 +136,7 @@ export function MicroBatcher<TParamType, TReturnType>(
     private static batchingIntervalInMs = 0;
     private static payloadWindowSizeLimit: number | undefined = undefined;
     private static shouldUseBatchResolverForSinglePayload: boolean = false;
+    private static errorStrategy: ErrorStrategy = { type: 'broadcast' };
 
     constructor(singlePayloadFunction: AsyncFunction<TParamType, TReturnType>) {
       MicroBatcherBuilder._singlePayloadFunction = singlePayloadFunction;
@@ -132,33 +156,72 @@ export function MicroBatcher<TParamType, TReturnType>(
         payloadList.length > 1 ||
         (MicroBatcherBuilder.shouldUseBatchResolverForSinglePayload && payloadList.length === 1);
       if (MicroBatcherBuilder._batchResolver && shouldUseBatchResolver) {
-        MicroBatcherBuilder._activeBatchCount++;
         // Unwrap single-element tuples for single-parameter functions
         // For (param: T) => Promise<R>, payload is [T] but batch expects T[]
         // For (p1: T1, p2: T2) => Promise<R>, payload is [T1, T2] and batch expects [T1, T2][]
         const unwrappedPayloads = payloadList.map(unwrapPayload);
-        MicroBatcherBuilder._batchResolver(unwrappedPayloads)
-          .then((results) => {
-            if (results.length !== payloadList.length) {
+
+        if (MicroBatcherBuilder.errorStrategy.type === 'isolate') {
+          // In isolate mode, the batch resolver returns Promise<TReturnType>[] (per-item promises).
+          // Each item settles independently, allowing immediate bail for failed/cancelled callers.
+          try {
+            const itemPromises = MicroBatcherBuilder._batchResolver(
+              unwrappedPayloads
+            ) as Promise<TReturnType>[];
+
+            if (itemPromises.length !== payloadList.length) {
               throw Error(
-                `Batch function has different number of results (${results.length}) as payload (${payloadList.length})`
+                `Batch function has different number of results (${itemPromises.length}) as payload (${payloadList.length})`
               );
             }
-            results.forEach((result, index) => {
+
+            itemPromises.forEach((itemPromise, index) => {
+              MicroBatcherBuilder._activeBatchCount++;
               const {
-                promiseLock: { release }
+                promiseLock: { release, releaseWithError }
               } = payloadLockerList[index];
-              release(result);
+              itemPromise
+                .then((result) => {
+                  release(result);
+                })
+                .catch((e) => {
+                  releaseWithError(e);
+                })
+                .finally(() => {
+                  MicroBatcherBuilder._activeBatchCount--;
+                });
             });
-          })
-          .catch((e) => {
+          } catch (e) {
+            // Synchronous throw from batch resolver — broadcast to all callers
             payloadLockerList.forEach(({ promiseLock: { releaseWithError } }) => {
               releaseWithError(e);
             });
-          })
-          .finally(() => {
-            MicroBatcherBuilder._activeBatchCount--;
-          });
+          }
+        } else {
+          MicroBatcherBuilder._activeBatchCount++;
+          (MicroBatcherBuilder._batchResolver(unwrappedPayloads) as Promise<TReturnType[]>)
+            .then((results) => {
+              if (results.length !== payloadList.length) {
+                throw Error(
+                  `Batch function has different number of results (${results.length}) as payload (${payloadList.length})`
+                );
+              }
+              results.forEach((result, index) => {
+                const {
+                  promiseLock: { release }
+                } = payloadLockerList[index];
+                release(result);
+              });
+            })
+            .catch((e) => {
+              payloadLockerList.forEach(({ promiseLock: { releaseWithError } }) => {
+                releaseWithError(e);
+              });
+            })
+            .finally(() => {
+              MicroBatcherBuilder._activeBatchCount--;
+            });
+        }
       } else {
         payloadList.forEach((wrappedPayload, index) => {
           const {
@@ -238,26 +301,27 @@ export function MicroBatcher<TParamType, TReturnType>(
      * - The returned array length and the payload array length are required to be the same.
      * - Each element's position in the result array will be mapped back to the corresponding payload element's position.
      */
-    batchResolver = (
-      batchFunction: AsyncBatchFunction<
-        SingleFunctionPayload<TParamType, TReturnType>[],
-        TReturnType[]
-      >,
+    batchResolver(
+      batchFunction:
+        | AsyncBatchFunction<SingleFunctionPayload<TParamType, TReturnType>[], TReturnType[]>
+        | AsyncIsolateBatchFunction<SingleFunctionPayload<TParamType, TReturnType>[], TReturnType>,
       batchOptions: BatchOptions = DEFAULT_BATCH_OPTIONS
-    ) => {
+    ) {
       MicroBatcherBuilder._batchResolver = batchFunction;
       const {
         payloadWindowSizeLimit,
         batchingIntervalInMs = DEFAULT_BATCH_WINDOW_MS,
-        shouldUseBatchResolverForSinglePayload = false
+        shouldUseBatchResolverForSinglePayload = false,
+        errorStrategy = { type: 'broadcast' }
       } = batchOptions;
       MicroBatcherBuilder.payloadWindowSizeLimit = payloadWindowSizeLimit;
       MicroBatcherBuilder.batchingIntervalInMs = batchingIntervalInMs;
       MicroBatcherBuilder.shouldUseBatchResolverForSinglePayload =
         shouldUseBatchResolverForSinglePayload;
+      MicroBatcherBuilder.errorStrategy = errorStrategy;
 
       return this;
-    };
+    }
 
     build(): AsyncFunction<TParamType, TReturnType> {
       return this.__intercept(MicroBatcherBuilder._singlePayloadFunction);

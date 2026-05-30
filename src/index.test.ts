@@ -671,4 +671,172 @@ describe('with batch resolver', () => {
       expect(mockSingleValueBatchResolver).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe('errorStrategy tests', () => {
+    describe('isolate mode', () => {
+      it('should route all fulfilled results to callers individually', async () => {
+        const mockIsolateBatchResolver: (payloadList: number[]) => Promise<number>[] = vi
+          .fn()
+          .mockImplementation((payloadList: number[]): Promise<number>[] => {
+            return payloadList.map((pl) => Promise.resolve(pl * 2));
+          });
+
+        const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+          .batchResolver(mockIsolateBatchResolver, {
+            batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD,
+            errorStrategy: { type: 'isolate' }
+          })
+          .build();
+
+        const result1 = multiplyByTwo(1);
+        const result2 = multiplyByTwo(2);
+        const result3 = multiplyByTwo(3);
+
+        expect(await result1).toBe(2);
+        expect(await result2).toBe(4);
+        expect(await result3).toBe(6);
+        expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+        expect(mockIsolateBatchResolver).toHaveBeenCalledTimes(1);
+      });
+
+      it('should route per-item success and failure independently', async () => {
+        const mockIsolateBatchResolver: (payloadList: number[]) => Promise<number>[] = vi
+          .fn()
+          .mockImplementation((payloadList: number[]): Promise<number>[] => {
+            return payloadList.map((pl) => {
+              if (pl === 2) {
+                return Promise.reject(new Error('item 2 cancelled'));
+              }
+              return Promise.resolve(pl * 2);
+            });
+          });
+
+        const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+          .batchResolver(mockIsolateBatchResolver, {
+            batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD,
+            errorStrategy: { type: 'isolate' }
+          })
+          .build();
+
+        const result1 = multiplyByTwo(1);
+        const result2 = multiplyByTwo(2);
+        const result3 = multiplyByTwo(3);
+
+        expect(await result1).toBe(2);
+        await expect(result2).rejects.toThrow('item 2 cancelled');
+        expect(await result3).toBe(6);
+        expect(mockSingleValueFunction).toHaveBeenCalledTimes(0);
+        expect(mockIsolateBatchResolver).toHaveBeenCalledTimes(1);
+      });
+
+      it('should route all rejected results to callers individually', async () => {
+        const mockIsolateBatchResolver: (payloadList: number[]) => Promise<number>[] = vi
+          .fn()
+          .mockImplementation((payloadList: number[]): Promise<number>[] => {
+            return payloadList.map((pl) => Promise.reject(new Error(`item ${pl} failed`)));
+          });
+
+        const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+          .batchResolver(mockIsolateBatchResolver, {
+            batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD,
+            errorStrategy: { type: 'isolate' }
+          })
+          .build();
+
+        const result1 = multiplyByTwo(1);
+        const result2 = multiplyByTwo(2);
+
+        await expect(result1).rejects.toThrow('item 1 failed');
+        await expect(result2).rejects.toThrow('item 2 failed');
+        expect(mockIsolateBatchResolver).toHaveBeenCalledTimes(1);
+      });
+
+      it('should fall back to broadcast behavior when batch resolver throws in isolate mode', async () => {
+        const mockThrowingIsolateBatchResolver: (payloadList: number[]) => Promise<number>[] = vi
+          .fn()
+          .mockImplementation((): Promise<number>[] => {
+            throw new Error('total batch failure');
+          });
+
+        const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+          .batchResolver(mockThrowingIsolateBatchResolver, {
+            batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD,
+            errorStrategy: { type: 'isolate' }
+          })
+          .build();
+
+        const result1 = multiplyByTwo(1);
+        const result2 = multiplyByTwo(2);
+
+        await expect(result1).rejects.toThrow('total batch failure');
+        await expect(result2).rejects.toThrow('total batch failure');
+        expect(mockThrowingIsolateBatchResolver).toHaveBeenCalledTimes(1);
+      });
+
+      it('should propagate error to all callers when batch resolver returns mismatched result count in isolate mode', async () => {
+        const mockMismatchIsolateBatchResolver: (payloadList: number[]) => Promise<number>[] = vi
+          .fn()
+          .mockImplementation((): Promise<number>[] => {
+            return [Promise.resolve(1)];
+          });
+
+        const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+          .batchResolver(mockMismatchIsolateBatchResolver, {
+            batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD,
+            errorStrategy: { type: 'isolate' }
+          })
+          .build();
+
+        const result1 = multiplyByTwo(1);
+        const result2 = multiplyByTwo(2);
+
+        await expect(result1).rejects.toThrow(
+          'Batch function has different number of results (1) as payload (2)'
+        );
+        await expect(result2).rejects.toThrow(
+          'Batch function has different number of results (1) as payload (2)'
+        );
+        expect(mockMismatchIsolateBatchResolver).toHaveBeenCalledTimes(1);
+      });
+
+      it('should allow a failed caller to bail immediately while other items in the batch continue', async () => {
+        const settlementOrder: string[] = [];
+
+        const mockIsolateBatchResolver: (payloadList: number[]) => Promise<number>[] = vi
+          .fn()
+          .mockImplementation((payloadList: number[]): Promise<number>[] => {
+            return payloadList.map((pl) => {
+              if (pl === 2) {
+                return Promise.reject(new Error('item 2 cancelled'));
+              }
+              return new Promise<number>((resolve) => {
+                setTimeout(() => resolve(pl * 2), 200);
+              });
+            });
+          });
+
+        const multiplyByTwo = MicroBatcher<number, number>(mockSingleValueFunction)
+          .batchResolver(mockIsolateBatchResolver, {
+            batchingIntervalInMs: DEFAULT_BATCH_THRESHOLD,
+            errorStrategy: { type: 'isolate' }
+          })
+          .build();
+
+        const result1 = multiplyByTwo(1);
+        const result2 = multiplyByTwo(2);
+        const result3 = multiplyByTwo(3);
+
+        result1.then(() => settlementOrder.push('item1'));
+        result2.catch(() => settlementOrder.push('item2'));
+        result3.then(() => settlementOrder.push('item3'));
+
+        await expect(result2).rejects.toThrow('item 2 cancelled');
+        expect(settlementOrder).toEqual(['item2']);
+
+        expect(await result1).toBe(2);
+        expect(await result3).toBe(6);
+        expect(settlementOrder).toEqual(['item2', 'item1', 'item3']);
+      });
+    });
+  });
 });

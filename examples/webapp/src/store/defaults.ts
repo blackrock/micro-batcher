@@ -5,6 +5,7 @@ export const DEFAULT_CONFIG: ExperimentConfig = {
   batchingIntervalInMs: 50,
   payloadWindowSizeLimit: undefined,
   shouldUseBatchResolverForSinglePayload: false,
+  errorStrategy: 'broadcast',
   apiLatencyMin: 500,
   apiLatencyMax: 2000,
   simulateError: 'none'

@@ -102,7 +102,7 @@ export interface BatchOptions {
    */
   errorStrategy?: ErrorStrategy;
   /**
-   * Optional. If set with a valid size, once the current payload queue reaches the limit before the interval ends, kick start the batcher immediately.
+   * Optional. Must be a positive safe integer. If set, once the current payload queue reaches the limit before the interval ends, kick start the batcher immediately.
    */
   payloadWindowSizeLimit?: number;
   /**
@@ -169,18 +169,26 @@ export function MicroBatcher<TParamType, TReturnType>(
               unwrappedPayloads
             ) as Promise<TReturnType>[];
 
+            if (!Array.isArray(itemPromises)) {
+              // The overloads can accept a Promise-returning callback with isolate options.
+              void Promise.resolve(itemPromises).catch(() => undefined);
+              throw new TypeError('Isolate batch function must return an array of promises');
+            }
+
             if (itemPromises.length !== payloadList.length) {
+              // Observe every item even when the batch shape is invalid.
+              void Promise.allSettled(itemPromises);
               throw Error(
                 `Batch function has different number of results (${itemPromises.length}) as payload (${payloadList.length})`
               );
             }
 
-            itemPromises.forEach((itemPromise, index) => {
+            Array.from(itemPromises).forEach((itemPromise, index) => {
               MicroBatcherBuilder._activeBatchCount++;
               const {
                 promiseLock: { release, releaseWithError }
               } = payloadLockerList[index];
-              itemPromise
+              Promise.resolve(itemPromise)
                 .then((result) => {
                   release(result);
                 })
@@ -199,18 +207,21 @@ export function MicroBatcher<TParamType, TReturnType>(
           }
         } else {
           MicroBatcherBuilder._activeBatchCount++;
-          (MicroBatcherBuilder._batchResolver(unwrappedPayloads) as Promise<TReturnType[]>)
+          Promise.resolve()
+            .then(
+              () => MicroBatcherBuilder._batchResolver!(unwrappedPayloads) as Promise<TReturnType[]>
+            )
             .then((results) => {
               if (results.length !== payloadList.length) {
                 throw Error(
                   `Batch function has different number of results (${results.length}) as payload (${payloadList.length})`
                 );
               }
-              results.forEach((result, index) => {
+              payloadLockerList.forEach((_, index) => {
                 const {
                   promiseLock: { release }
                 } = payloadLockerList[index];
-                release(result);
+                release(results[index]);
               });
             })
             .catch((e) => {
@@ -229,9 +240,12 @@ export function MicroBatcher<TParamType, TReturnType>(
           } = payloadLockerList[index];
           MicroBatcherBuilder._activeBatchCount++;
 
-          // Spread the parameters array into the function call
-          // @ts-ignore - TypeScript can't verify spread of tuple types matches function signature
-          MicroBatcherBuilder._singlePayloadFunction(...wrappedPayload)
+          Promise.resolve()
+            .then(() => {
+              // Spread the parameters array into the function call.
+              // @ts-ignore - TypeScript cannot verify the conditional function signature.
+              return MicroBatcherBuilder._singlePayloadFunction(...wrappedPayload);
+            })
             .then((result) => {
               release(result);
             })
@@ -307,13 +321,19 @@ export function MicroBatcher<TParamType, TReturnType>(
         | AsyncIsolateBatchFunction<SingleFunctionPayload<TParamType, TReturnType>[], TReturnType>,
       batchOptions: BatchOptions = DEFAULT_BATCH_OPTIONS
     ) {
-      MicroBatcherBuilder._batchResolver = batchFunction;
       const {
         payloadWindowSizeLimit,
         batchingIntervalInMs = DEFAULT_BATCH_WINDOW_MS,
         shouldUseBatchResolverForSinglePayload = false,
         errorStrategy = { type: 'broadcast' }
       } = batchOptions;
+      if (
+        payloadWindowSizeLimit !== undefined &&
+        (!Number.isSafeInteger(payloadWindowSizeLimit) || payloadWindowSizeLimit <= 0)
+      ) {
+        throw new RangeError('payloadWindowSizeLimit must be a positive safe integer');
+      }
+      MicroBatcherBuilder._batchResolver = batchFunction;
       MicroBatcherBuilder.payloadWindowSizeLimit = payloadWindowSizeLimit;
       MicroBatcherBuilder.batchingIntervalInMs = batchingIntervalInMs;
       MicroBatcherBuilder.shouldUseBatchResolverForSinglePayload =
